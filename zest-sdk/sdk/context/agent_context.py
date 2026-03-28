@@ -336,11 +336,11 @@ class AgentContext(BaseModel):
         base_memory: str = user_memory.get("base_memory")  # type: ignore
         experience_memory: list[ExperienceMemory] = user_memory.get("experience_memory")  # type: ignore
         doc_ids: list[str] = user_memory.get("doc_ids")  # type: ignore
-        if activate_ids is not None:
+        if activate_ids:
             experience_memory = [
                 item
                 for item in experience_memory
-                if activate_ids and item.id not in activate_ids
+                if  item.id not in activate_ids
             ]
             doc_ids = [item.id for item in experience_memory]
 

@@ -1,24 +1,47 @@
 <MEMORY>
-  【用户记忆参考】
-  以下是该用户的相关记忆信息，请你：
-  1. 优先结合这些信息理解用户当前的提问背景和潜在需求；
-  2. 仅在与用户当前问题相关时自然融入记忆信息，不主动泄露未提及的敏感内容；
-  3. 若记忆信息与当前问题无关，无需刻意提及；
-  4. 经验信息按时间倒序参考，最新经验优先级更高。
-  5. 对于非正向反馈的经验信息，你在接下来的决策中，请避免采用了相同的解决方案。
-  6. 对于正向反馈的经验信息，可能会有助于你解决当前的问题，你在接下来的决策中，可以借鉴此解决方案。
+
+以下是该用户的两类记忆信息，请严格遵循规则：
+
+  一、基础记忆（用户基本情况）
+  1. 用于理解用户身份、偏好、长期背景；
+  2. 始终参考，自然融入回答，不刻意提及。
+
+  二、经验记忆（历史交互经验）
+  1. 仅在与当前问题相关时参考；
+  2. 按时间倒序，**最新经验优先级最高**；
+  3. 正向反馈（POSITIVE）：可借鉴其解决方案与执行路径；
+  4. 负向反馈（NEGATIVE）：**禁止采用相同解决方案**；
+  5. 中性反馈（NEUTRAL）：仅作参考，不优先借鉴。
 
   {% if need_load_memory and base_memory %}
-  <基本信息>
+  <基础记忆>
   {{ base_memory | trim }}
-  </基本信息>
+  </基础记忆>
   {% endif %}
 
-  {% if experience_memory and experience_memory|length > 0 %}
-  <经验信息>
+  {% if experience_memory and experience_memory | length > 0 %}
+  <经验记忆>
   {% for exp in experience_memory %}
-  - 问题{{ exp.question }} | 解决方案：{{ exp.solution }} | 反馈类型：{{ exp.feedback_type }}
+  ---
+  【经验 {{ loop.index }}】
+  - 问题：{{ exp.question | trim }}
+  - 解决方案：{{ exp.solution | trim }}
+  - 反馈类型：{{ exp.feedback_type | upper }}
+  - 适用领域：{{ exp.domain_type | default('通用', true) }} 
+
+  {% if exp.execute_trace | length > 0 %}
+  - 执行轨迹（共 {{ exp.execute_trace | length }} 步）：
+    {% for trace in exp.execute_trace %}
+    步骤 {{ trace.step }}:
+      • 思考：{{ trace.thought | trim }}
+      {% if trace.tool_call %}• 调用工具：{{ trace.tool_call | trim }}{% endif %}
+      {% if trace.tool_result %}• 工具结果：{{ trace.tool_result | trim }}{% endif %}
+    {% endfor %}
+  {% else %}
+  - 执行轨迹：无记录
+  {% endif %}
+  ---
   {% endfor %}
-  </经验信息>
+  </经验记忆>
   {% endif %}
 </MEMORY>

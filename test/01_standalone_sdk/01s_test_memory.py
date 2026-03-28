@@ -89,17 +89,24 @@ conversation = Conversation(agent=agent, workspace=cwd, persistence_dir=persiste
 #     "分2次输出不同的 人生哲理，一次输出一条 ,严格分2次，不要一次输出2个 "
 # )
 # conversation.run()
+# message = Message(
+#     user_id=user_id,
+#     role="user",
+#     content=[TextContent(text="请记住，我的邮箱 7755233@qq.com")],
+# )
+# conversation.send_message(message)
+# conversation.run()
 message = Message(
     user_id=user_id,
     role="user",
-    content=[TextContent(text="请记住，我的邮箱 7755233@qq.com")],
+    content=[TextContent(text="输出3条具有实践意义，且有助于学习进步的哲理，请务必先思考，在回答")],
 )
 conversation.send_message(message)
 conversation.run()
 message = Message(
     user_id=user_id,
     role="user",
-    content=[TextContent(text="输出3条具有实践意义，且有助于学习进步的哲理，请务必先思考，在回答")],
+    content=[TextContent(text="借鉴马斯克提到的第一性原理，总结3个高效的自学习惯")],
 )
 conversation.send_message(message)
 conversation.run()
