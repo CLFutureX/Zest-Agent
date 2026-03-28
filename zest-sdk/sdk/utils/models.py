@@ -99,7 +99,8 @@ def _get_checked_concrete_subclasses(cls: type) -> dict[str, type]:
 
 
 class ZestAgent(BaseModel):
-    pass
+    unique_id: str | None = None
+    
 
 
 class DiscriminatedUnionMixin(ZestAgent):
