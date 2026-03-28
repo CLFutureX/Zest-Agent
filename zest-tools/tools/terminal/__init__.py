@@ -1,13 +1,13 @@
 # Core tool interface
-from openhands.tools.terminal.definition import (
+from tools.terminal.definition import (
     TerminalAction,
     TerminalObservation,
     TerminalTool,
 )
-from openhands.tools.terminal.impl import TerminalExecutor
+from tools.terminal.impl import TerminalExecutor
 
 # Terminal session architecture - import from sessions package
-from openhands.tools.terminal.terminal import (
+from tools.terminal.terminal import (
     TerminalCommandStatus,
     TerminalSession,
     create_terminal_session,

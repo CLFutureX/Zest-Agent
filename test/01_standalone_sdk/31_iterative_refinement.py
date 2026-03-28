@@ -21,7 +21,7 @@ from pathlib import Path
 from pydantic import SecretStr
 
 from sdk import LLM, Conversation
-from openhands.tools.preset.default import get_default_agent
+from tools.preset.default import get_default_agent
 
 
 QUALITY_THRESHOLD = float(os.getenv("QUALITY_THRESHOLD", "90.0"))

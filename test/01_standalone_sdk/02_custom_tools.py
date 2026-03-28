@@ -24,8 +24,8 @@ from sdk.tool import (
     ToolExecutor,
     register_tool,
 )
-from openhands.tools.file_editor import FileEditorTool
-from openhands.tools.terminal import (
+from tools.file_editor import FileEditorTool
+from tools.terminal import (
     TerminalAction,
     TerminalExecutor,
     TerminalTool,

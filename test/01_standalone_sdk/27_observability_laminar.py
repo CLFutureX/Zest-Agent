@@ -10,7 +10,7 @@ import os
 from pydantic import SecretStr
 
 from sdk import LLM, Agent, Conversation, Tool
-from openhands.tools.terminal import TerminalTool
+from tools.terminal import TerminalTool
 
 
 # Tip: Set LMNR_PROJECT_API_KEY in your environment before running, e.g.:

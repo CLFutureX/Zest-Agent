@@ -91,9 +91,9 @@ def get_plan_headers() -> str:
 def register_planning_tools() -> None:
     """Register the planning agent tools."""
     # Tools are now automatically registered when imported
-    from openhands.tools.glob import GlobTool  # noqa: F401
-    from openhands.tools.grep import GrepTool  # noqa: F401
-    from openhands.tools.planning_file_editor import (
+    from tools.glob import GlobTool  # noqa: F401
+    from tools.grep import GrepTool  # noqa: F401
+    from tools.planning_file_editor import (
         PlanningFileEditorTool,  # noqa: F401
     )
 
@@ -113,9 +113,9 @@ def get_planning_tools() -> list[Tool]:
     register_planning_tools()
 
     # Import tools to access their name attributes
-    from openhands.tools.glob import GlobTool
-    from openhands.tools.grep import GrepTool
-    from openhands.tools.planning_file_editor import PlanningFileEditorTool
+    from tools.glob import GlobTool
+    from tools.grep import GrepTool
+    from tools.planning_file_editor import PlanningFileEditorTool
 
     return [
         Tool(name=GlobTool.tool_name),

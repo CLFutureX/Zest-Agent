@@ -16,7 +16,7 @@ from sdk.event import (
 from sdk.io import FileStore
 from sdk.logger import get_logger
 from sdk.tool import Observation, ToolExecutor
-from openhands.tools.tom_consult.definition import (
+from tools.tom_consult.definition import (
     ConsultTomAction,
     ConsultTomObservation,
     SleeptimeComputeAction,

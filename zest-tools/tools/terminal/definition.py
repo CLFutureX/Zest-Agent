@@ -21,11 +21,11 @@ from sdk.tool import (
     register_tool,
 )
 from sdk.utils import maybe_truncate
-from openhands.tools.terminal.constants import (
+from tools.terminal.constants import (
     MAX_CMD_OUTPUT_SIZE,
     NO_CHANGE_TIMEOUT_SECONDS,
 )
-from openhands.tools.terminal.metadata import CmdOutputMetadata
+from tools.terminal.metadata import CmdOutputMetadata
 
 
 class TerminalAction(Action):
@@ -261,7 +261,7 @@ class TerminalTool(ToolDefinition[TerminalAction, TerminalObservation]):
                        If None, will auto-detect bash from PATH.
         """
         # Import here to avoid circular imports
-        from openhands.tools.terminal.impl import TerminalExecutor
+        from tools.terminal.impl import TerminalExecutor
 
         working_dir = conv_state.workspace.working_dir
         if not os.path.isdir(working_dir):

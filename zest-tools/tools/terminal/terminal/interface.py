@@ -3,10 +3,10 @@
 import os
 from abc import ABC, abstractmethod
 
-from openhands.tools.terminal.constants import (
+from tools.terminal.constants import (
     NO_CHANGE_TIMEOUT_SECONDS,
 )
-from openhands.tools.terminal.definition import (
+from tools.terminal.definition import (
     TerminalAction,
     TerminalObservation,
 )

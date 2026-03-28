@@ -22,7 +22,7 @@ from sdk.utils import DEFAULT_TEXT_CONTENT_LIMIT, maybe_truncate
 # Lazy import to avoid hanging during module import
 if TYPE_CHECKING:
     from sdk.conversation.state import ConversationState
-    from openhands.tools.browser_use.impl import BrowserToolExecutor
+    from tools.browser_use.impl import BrowserToolExecutor
 
 
 # Mapping of base64 prefixes to MIME types for image detection
@@ -690,7 +690,7 @@ class BrowserToolSet(ToolDefinition[BrowserAction, BrowserObservation]):
 
         # Use Windows-specific executor on Windows systems
         if sys.platform == "win32":
-            from openhands.tools.browser_use.impl_windows import (
+            from tools.browser_use.impl_windows import (
                 WindowsBrowserToolExecutor,
             )
 
@@ -699,7 +699,7 @@ class BrowserToolSet(ToolDefinition[BrowserAction, BrowserObservation]):
                 **executor_config,
             )
         else:
-            from openhands.tools.browser_use.impl import BrowserToolExecutor
+            from tools.browser_use.impl import BrowserToolExecutor
 
             executor = BrowserToolExecutor(
                 full_output_save_dir=conv_state.env_observation_persistence_dir,

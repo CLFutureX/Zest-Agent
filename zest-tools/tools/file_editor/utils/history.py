@@ -4,7 +4,7 @@ import logging
 import tempfile
 from pathlib import Path
 
-from openhands.tools.file_editor.utils.file_cache import FileCache
+from tools.file_editor.utils.file_cache import FileCache
 
 
 class FileHistoryManager:

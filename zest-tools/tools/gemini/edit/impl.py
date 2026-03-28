@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from sdk.tool import ToolExecutor
-from openhands.tools.gemini.edit.definition import EditAction, EditObservation
+from tools.gemini.edit.definition import EditAction, EditObservation
 
 
 if TYPE_CHECKING:

@@ -18,7 +18,7 @@ from sdk import (
     get_logger,
 )
 from sdk.llm import LLM
-from openhands.tools.preset.default import get_default_agent
+from tools.preset.default import get_default_agent
 
 
 logger = get_logger(__name__)

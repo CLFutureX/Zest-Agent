@@ -178,7 +178,7 @@ def get_tool_module_qualnames() -> dict[str, str]:
 
     Returns:
         A dictionary mapping tool names to module qualnames (e.g.,
-        {"glob": "openhands.tools.glob.definition"}).
+        {"glob": "tools.glob.definition"}).
     """
     with _LOCK:
         return dict(_MODULE_QUALNAMES)

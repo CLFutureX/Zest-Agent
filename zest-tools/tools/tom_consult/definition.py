@@ -170,7 +170,7 @@ class TomConsultTool(ToolDefinition[ConsultTomAction, ConsultTomObservation]):
         _ = conv_state
 
         # Import here to avoid circular imports and make tom-swe optional
-        from openhands.tools.tom_consult.executor import TomConsultExecutor
+        from tools.tom_consult.executor import TomConsultExecutor
 
         file_store = LocalFileStore(root="~/.openhands")
 
@@ -225,7 +225,7 @@ class SleeptimeComputeTool(
         _ = conv_state
 
         # Import here to avoid circular imports and make tom-swe optional
-        from openhands.tools.tom_consult.executor import TomConsultExecutor
+        from tools.tom_consult.executor import TomConsultExecutor
 
         file_store = LocalFileStore(root="~/.openhands")
 

@@ -4,7 +4,7 @@ import time
 
 from sdk.utils import sanitized_env
 from sdk.utils.truncate import maybe_truncate
-from openhands.tools.file_editor.utils.constants import (
+from tools.file_editor.utils.constants import (
     CONTENT_TRUNCATED_NOTICE,
     MAX_RESPONSE_LEN_CHAR,
 )

@@ -18,8 +18,8 @@ from sdk.conversation.state import (
 from sdk.security.confirmation_policy import ConfirmRisky
 from sdk.security.llm_analyzer import LLMSecurityAnalyzer
 from sdk.tool import Tool
-from openhands.tools.file_editor import FileEditorTool
-from openhands.tools.terminal import TerminalTool
+from tools.file_editor import FileEditorTool
+from tools.terminal import TerminalTool
 
 
 # Clean ^C exit: no stack trace noise

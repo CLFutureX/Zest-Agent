@@ -14,8 +14,8 @@ from sdk.utils import sanitized_env
 
 if TYPE_CHECKING:
     pass
-from openhands.tools.glob.definition import GlobAction, GlobObservation
-from openhands.tools.utils import (
+from tools.glob.definition import GlobAction, GlobObservation
+from tools.utils import (
     _check_ripgrep_available,
     _log_ripgrep_fallback_warning,
 )

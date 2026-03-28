@@ -18,7 +18,7 @@ By default, the terminal tool auto-detects bash from your PATH (like `#!/usr/bin
 
 ```python
 from sdk import Conversation
-from openhands.tools.terminal.definition import TerminalTool
+from tools.terminal.definition import TerminalTool
 
 # Create conversation
 conversation = Conversation()
@@ -43,7 +43,7 @@ If bash cannot be found in PATH, the tool will raise a clear error asking you to
 
 ```python
 from sdk import Conversation
-from openhands.tools.terminal.definition import TerminalTool, TerminalAction
+from tools.terminal.definition import TerminalTool, TerminalAction
 
 conversation = Conversation()
 tools = TerminalTool.create(conv_state=conversation.state)
@@ -62,7 +62,7 @@ print(result.text)
 ```python
 import shutil
 from sdk import Conversation
-from openhands.tools.terminal.definition import TerminalTool
+from tools.terminal.definition import TerminalTool
 
 conversation = Conversation()
 

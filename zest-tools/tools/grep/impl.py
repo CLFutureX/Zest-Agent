@@ -12,8 +12,8 @@ from sdk.utils import sanitized_env
 
 if TYPE_CHECKING:
     pass
-from openhands.tools.grep.definition import GrepAction, GrepObservation
-from openhands.tools.utils import (
+from tools.grep.definition import GrepAction, GrepObservation
+from tools.utils import (
     _check_ripgrep_available,
     _log_ripgrep_fallback_warning,
 )

@@ -7,12 +7,12 @@ from sdk.conversation.impl.local_conversation import LocalConversation
 from sdk.conversation.response_utils import get_agent_final_response
 from sdk.logger import get_logger
 from sdk.tool.tool import ToolExecutor
-from openhands.tools.delegate.definition import DelegateObservation
-from openhands.tools.delegate.registration import get_agent_factory
+from tools.delegate.definition import DelegateObservation
+from tools.delegate.registration import get_agent_factory
 
 
 if TYPE_CHECKING:
-    from openhands.tools.delegate.definition import DelegateAction
+    from tools.delegate.definition import DelegateAction
 
 logger = get_logger(__name__)
 

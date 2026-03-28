@@ -7,9 +7,9 @@ from sdk.tool import ToolExecutor
 
 if TYPE_CHECKING:
     from sdk.conversation import LocalConversation
-from openhands.tools.file_editor.definition import FileEditorAction
-from openhands.tools.file_editor.impl import FileEditorExecutor
-from openhands.tools.planning_file_editor.definition import (
+from tools.file_editor.definition import FileEditorAction
+from tools.file_editor.impl import FileEditorExecutor
+from tools.planning_file_editor.definition import (
     PlanningFileEditorAction,
     PlanningFileEditorObservation,
 )

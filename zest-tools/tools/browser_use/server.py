@@ -1,7 +1,7 @@
 from browser_use.dom.markdown_extractor import extract_clean_markdown
 
 from sdk import get_logger
-from openhands.tools.browser_use.logging_fix import LogSafeBrowserUseServer
+from tools.browser_use.logging_fix import LogSafeBrowserUseServer
 
 
 logger = get_logger(__name__)

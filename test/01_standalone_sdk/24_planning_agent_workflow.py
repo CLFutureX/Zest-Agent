@@ -18,8 +18,8 @@ from pydantic import SecretStr
 
 from sdk import LLM, Conversation
 from sdk.llm import content_to_str
-from openhands.tools.preset.default import get_default_agent
-from openhands.tools.preset.planning import get_planning_agent
+from tools.preset.default import get_default_agent
+from tools.preset.planning import get_planning_agent
 
 
 def get_event_content(event):

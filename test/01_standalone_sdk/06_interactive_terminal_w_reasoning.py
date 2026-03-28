@@ -11,7 +11,7 @@ from sdk import (
     get_logger,
 )
 from sdk.tool import Tool
-from openhands.tools.terminal import TerminalTool
+from tools.terminal import TerminalTool
 
 
 logger = get_logger(__name__)

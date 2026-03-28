@@ -6,13 +6,13 @@ from sdk.tool import ToolExecutor
 
 if TYPE_CHECKING:
     from sdk.conversation import LocalConversation
-from openhands.tools.file_editor.definition import (
+from tools.file_editor.definition import (
     CommandLiteral,
     FileEditorAction,
     FileEditorObservation,
 )
-from openhands.tools.file_editor.editor import FileEditor
-from openhands.tools.file_editor.exceptions import ToolError
+from tools.file_editor.editor import FileEditor
+from tools.file_editor.exceptions import ToolError
 
 
 # Module-global editor instance (lazily initialized in file_editor)

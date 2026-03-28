@@ -306,7 +306,7 @@ class Agent(AgentBase):
 
         logger.info(
             "Sending messages to LLM: "
-            f"{json.dumps([m.model_dump() for m in _messages], indent=2)}"
+            f"{json.dumps([m.model_dump_json() for m in _messages], indent=2)}"
         )
 
         try:

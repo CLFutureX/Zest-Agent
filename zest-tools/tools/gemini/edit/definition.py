@@ -87,7 +87,7 @@ class EditObservation(Observation):
                 )
 
             if self.old_content is not None and self.new_content is not None:
-                from openhands.tools.file_editor.utils.diff import visualize_diff
+                from tools.file_editor.utils.diff import visualize_diff
 
                 if not self._diff_cache:
                     self._diff_cache = visualize_diff(
@@ -142,7 +142,7 @@ class EditTool(ToolDefinition[EditAction, EditObservation]):
         Args:
             conv_state: Conversation state to get working directory from.
         """
-        from openhands.tools.gemini.edit.impl import EditExecutor
+        from tools.gemini.edit.impl import EditExecutor
 
         executor = EditExecutor(workspace_root=conv_state.workspace.working_dir)
 

@@ -16,13 +16,13 @@ from collections import deque
 
 from sdk.logger import get_logger
 from sdk.utils import sanitized_env
-from openhands.tools.terminal.constants import (
+from tools.terminal.constants import (
     CMD_OUTPUT_PS1_BEGIN,
     CMD_OUTPUT_PS1_END,
     HISTORY_LIMIT,
 )
-from openhands.tools.terminal.metadata import CmdOutputMetadata
-from openhands.tools.terminal.terminal import TerminalInterface
+from tools.terminal.metadata import CmdOutputMetadata
+from tools.terminal.terminal import TerminalInterface
 
 
 logger = get_logger(__name__)

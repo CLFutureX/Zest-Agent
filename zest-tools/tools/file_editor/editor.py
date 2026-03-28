@@ -12,29 +12,29 @@ from binaryornot.check import is_binary
 from sdk import ImageContent, TextContent
 from sdk.logger import get_logger
 from sdk.utils.truncate import maybe_truncate
-from openhands.tools.file_editor.definition import (
+from tools.file_editor.definition import (
     CommandLiteral,
     FileEditorObservation,
 )
-from openhands.tools.file_editor.exceptions import (
+from tools.file_editor.exceptions import (
     EditorToolParameterInvalidError,
     EditorToolParameterMissingError,
     FileValidationError,
     ToolError,
 )
-from openhands.tools.file_editor.utils.config import SNIPPET_CONTEXT_WINDOW
-from openhands.tools.file_editor.utils.constants import (
+from tools.file_editor.utils.config import SNIPPET_CONTEXT_WINDOW
+from tools.file_editor.utils.constants import (
     BINARY_FILE_CONTENT_TRUNCATED_NOTICE,
     DIRECTORY_CONTENT_TRUNCATED_NOTICE,
     MAX_RESPONSE_LEN_CHAR,
     TEXT_FILE_CONTENT_TRUNCATED_NOTICE,
 )
-from openhands.tools.file_editor.utils.encoding import (
+from tools.file_editor.utils.encoding import (
     EncodingManager,
     with_encoding,
 )
-from openhands.tools.file_editor.utils.history import FileHistoryManager
-from openhands.tools.file_editor.utils.shell import run_shell_cmd
+from tools.file_editor.utils.history import FileHistoryManager
+from tools.file_editor.utils.shell import run_shell_cmd
 
 
 logger = get_logger(__name__)

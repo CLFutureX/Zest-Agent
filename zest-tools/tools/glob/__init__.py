@@ -1,10 +1,10 @@
 # Core tool interface
-from openhands.tools.glob.definition import (
+from tools.glob.definition import (
     GlobAction,
     GlobObservation,
     GlobTool,
 )
-from openhands.tools.glob.impl import GlobExecutor
+from tools.glob.impl import GlobExecutor
 
 
 __all__ = [

@@ -13,7 +13,7 @@ from sdk.conversation.state import (
 )
 from sdk.security.confirmation_policy import AlwaysConfirm, NeverConfirm
 from sdk.security.llm_analyzer import LLMSecurityAnalyzer
-from openhands.tools.preset.default import get_default_agent
+from tools.preset.default import get_default_agent
 
 
 # Make ^C a clean exit instead of a stack trace

@@ -13,7 +13,7 @@ from sdk.tool import (
     ToolDefinition,
     register_tool,
 )
-from openhands.tools.file_editor.definition import (
+from tools.file_editor.definition import (
     TOOL_DESCRIPTION as FILE_EDITOR_TOOL_DESCRIPTION,
     FileEditorAction,
     FileEditorObservation,
@@ -69,7 +69,7 @@ class PlanningFileEditorTool(
             conv_state: Conversation state to get working directory from.
         """
         # Import here to avoid circular imports
-        from openhands.tools.planning_file_editor.impl import (
+        from tools.planning_file_editor.impl import (
             PlanningFileEditorExecutor,
         )
 
@@ -81,7 +81,7 @@ class PlanningFileEditorTool(
         plan_file = Path(plan_path)
         if not plan_file.exists():
             # Import here to avoid circular imports
-            from openhands.tools.preset.planning import get_plan_headers
+            from tools.preset.planning import get_plan_headers
 
             plan_file.write_text(get_plan_headers())
 

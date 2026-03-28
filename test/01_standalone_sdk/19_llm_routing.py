@@ -14,7 +14,7 @@ from sdk import (
     get_logger,
 )
 from sdk.llm.router import MultimodalRouter
-from openhands.tools.preset.default import get_default_tools
+from tools.preset.default import get_default_tools
 
 
 logger = get_logger(__name__)

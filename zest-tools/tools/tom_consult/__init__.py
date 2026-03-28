@@ -4,7 +4,7 @@ This tool provides Theory of Mind capabilities by consulting an external
 Tom agent for personalized guidance and user intent understanding.
 """
 
-from openhands.tools.tom_consult.definition import (
+from tools.tom_consult.definition import (
     ConsultTomAction,
     ConsultTomObservation,
     SleeptimeComputeAction,

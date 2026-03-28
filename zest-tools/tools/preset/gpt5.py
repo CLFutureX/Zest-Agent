@@ -18,16 +18,16 @@ logger = get_logger(__name__)
 
 def register_gpt5_tools(enable_browser: bool = True) -> None:
     """Register the GPT-5 tool set (terminal, apply_patch, task_tracker, browser)."""
-    from openhands.tools.apply_patch import ApplyPatchTool
-    from openhands.tools.task_tracker import TaskTrackerTool
-    from openhands.tools.terminal import TerminalTool
+    from tools.apply_patch import ApplyPatchTool
+    from tools.task_tracker import TaskTrackerTool
+    from tools.terminal import TerminalTool
 
     logger.debug(f"Tool: {TerminalTool.name} registered.")
     logger.debug(f"Tool: {ApplyPatchTool.name} registered.")
     logger.debug(f"Tool: {TaskTrackerTool.name} registered.")
 
     if enable_browser:
-        from openhands.tools.browser_use import BrowserToolSet
+        from tools.browser_use import BrowserToolSet
 
         logger.debug(f"Tool: {BrowserToolSet.name} registered.")
 
@@ -40,9 +40,9 @@ def get_gpt5_tools(enable_browser: bool = True) -> list[Tool]:
     """
     register_gpt5_tools(enable_browser=enable_browser)
 
-    from openhands.tools.apply_patch import ApplyPatchTool
-    from openhands.tools.task_tracker import TaskTrackerTool
-    from openhands.tools.terminal import TerminalTool
+    from tools.apply_patch import ApplyPatchTool
+    from tools.task_tracker import TaskTrackerTool
+    from tools.terminal import TerminalTool
 
     tools: list[Tool] = [
         Tool(name=TerminalTool.tool_name),
@@ -50,7 +50,7 @@ def get_gpt5_tools(enable_browser: bool = True) -> list[Tool]:
         Tool(name=TaskTrackerTool.tool_name),
     ]
     if enable_browser:
-        from openhands.tools.browser_use import BrowserToolSet
+        from tools.browser_use import BrowserToolSet
 
         tools.append(Tool(name=BrowserToolSet.tool_name))
     return tools

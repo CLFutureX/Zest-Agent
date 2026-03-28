@@ -20,7 +20,7 @@ from pydantic import SecretStr
 
 from sdk import LLM, Conversation
 from sdk.hooks import HookConfig, HookDefinition, HookMatcher
-from openhands.tools.preset.default import get_default_agent
+from tools.preset.default import get_default_agent
 
 
 signal.signal(signal.SIGINT, lambda *_: (_ for _ in ()).throw(KeyboardInterrupt()))

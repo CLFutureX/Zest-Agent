@@ -79,7 +79,7 @@ class GrepTool(ToolDefinition[GrepAction, GrepObservation]):
                          conv_state.workspace
         """
         # Import here to avoid circular imports
-        from openhands.tools.grep.impl import GrepExecutor
+        from tools.grep.impl import GrepExecutor
 
         working_dir = conv_state.workspace.working_dir
         if not os.path.isdir(working_dir):

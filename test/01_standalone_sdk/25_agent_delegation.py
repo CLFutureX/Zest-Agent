@@ -21,12 +21,12 @@ from sdk import (
 )
 from sdk.context import Skill
 from sdk.tool import register_tool
-from openhands.tools.delegate import (
+from tools.delegate import (
     DelegateTool,
     DelegationVisualizer,
     register_agent,
 )
-from openhands.tools.preset.default import get_default_tools
+from tools.preset.default import get_default_tools
 
 
 ONLY_RUN_SIMPLE_DELEGATION = False

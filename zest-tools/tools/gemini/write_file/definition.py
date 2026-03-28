@@ -63,7 +63,7 @@ class WriteFileObservation(Observation):
                 text.append(f"Updated: {self.file_path}\n", style="yellow")
 
             if self.old_content is not None and self.new_content is not None:
-                from openhands.tools.file_editor.utils.diff import visualize_diff
+                from tools.file_editor.utils.diff import visualize_diff
 
                 if not self._diff_cache:
                     self._diff_cache = visualize_diff(
@@ -109,7 +109,7 @@ class WriteFileTool(ToolDefinition[WriteFileAction, WriteFileObservation]):
         Args:
             conv_state: Conversation state to get working directory from.
         """
-        from openhands.tools.gemini.write_file.impl import WriteFileExecutor
+        from tools.gemini.write_file.impl import WriteFileExecutor
 
         executor = WriteFileExecutor(workspace_root=conv_state.workspace.working_dir)
 

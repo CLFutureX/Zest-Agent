@@ -16,6 +16,8 @@ dependencies = [
     "tenacity>=9.1.2",
     "websockets>=12",
     "lmnr>=0.7.24",
+    "jieba>=0.42.1",
+    "elasticsearch>=8.14.0",
 ]
 
 [project.urls]
@@ -32,7 +34,7 @@ build-backend = "setuptools.build_meta"
 "" = "."
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+include = ["sdk*"]
 namespaces = true
 
 [tool.setuptools.package-data]

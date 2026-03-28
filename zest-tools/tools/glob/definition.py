@@ -77,7 +77,7 @@ class GlobTool(ToolDefinition[GlobAction, GlobObservation]):
                          conv_state.workspace
         """
         # Import here to avoid circular imports
-        from openhands.tools.glob.impl import GlobExecutor
+        from tools.glob.impl import GlobExecutor
 
         working_dir = conv_state.workspace.working_dir
         if not os.path.isdir(working_dir):

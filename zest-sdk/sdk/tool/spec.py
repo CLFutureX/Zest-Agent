@@ -13,7 +13,7 @@ class Tool(BaseModel):
         ...,
         description=(
             "Name of the tool class, e.g., 'TerminalTool'. "
-            "Import it from an `openhands.tools.<module>` subpackage."
+            "Import it from an `tools.<module>` subpackage."
         ),
         examples=["TerminalTool", "FileEditorTool", "TaskTrackerTool"],
     )

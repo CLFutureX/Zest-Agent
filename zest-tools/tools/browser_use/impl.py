@@ -17,9 +17,9 @@ from sdk.logger import DEBUG, get_logger
 from sdk.tool import ToolExecutor
 from sdk.utils import sanitized_env
 from sdk.utils.async_executor import AsyncExecutor
-from openhands.tools.browser_use.definition import BrowserAction, BrowserObservation
-from openhands.tools.browser_use.server import CustomBrowserUseServer
-from openhands.tools.utils.timeout import TimeoutError, run_with_timeout
+from tools.browser_use.definition import BrowserAction, BrowserObservation
+from tools.browser_use.server import CustomBrowserUseServer
+from tools.utils.timeout import TimeoutError, run_with_timeout
 
 
 # Suppress browser-use logging for cleaner integration
@@ -212,7 +212,7 @@ class BrowserToolExecutor(ToolExecutor[BrowserAction, BrowserObservation]):
 
     async def _execute_action(self, action):
         """Execute browser action asynchronously."""
-        from openhands.tools.browser_use.definition import (
+        from tools.browser_use.definition import (
             BrowserClickAction,
             BrowserCloseTabAction,
             BrowserGetContentAction,
@@ -315,7 +315,7 @@ class BrowserToolExecutor(ToolExecutor[BrowserAction, BrowserObservation]):
 
     async def get_state(self, include_screenshot: bool = False):
         """Get current browser state with interactive elements."""
-        from openhands.tools.browser_use.definition import BrowserObservation
+        from tools.browser_use.definition import BrowserObservation
 
         await self._ensure_initialized()
         result_json = await self._server._get_browser_state(include_screenshot)

@@ -10,7 +10,7 @@ from sdk import (
 )
 from sdk.llm import LLM
 from sdk.llm.streaming import ModelResponseStream
-from openhands.tools.preset.default import get_default_agent
+from tools.preset.default import get_default_agent
 
 
 logger = get_logger(__name__)

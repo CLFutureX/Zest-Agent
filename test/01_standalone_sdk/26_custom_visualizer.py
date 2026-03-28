@@ -20,7 +20,7 @@ from sdk.conversation.visualizer import ConversationVisualizerBase
 from sdk.event import (
     Event,
 )
-from openhands.tools.preset.default import get_default_agent
+from tools.preset.default import get_default_agent
 
 
 class MinimalVisualizer(ConversationVisualizerBase):

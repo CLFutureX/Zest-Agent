@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 
 def register_gemini_tools(enable_browser: bool = True) -> None:
     """Register the gemini set of tools."""
-    # from openhands.tools.terminal import TerminalTool
+    # from tools.terminal import TerminalTool
 
     # logger.debug(f"Tool: {TerminalTool.name} registered.")
     # logger.debug(f"Tool: {ReadFileTool.name} registered.")
@@ -29,7 +29,7 @@ def register_gemini_tools(enable_browser: bool = True) -> None:
     # logger.debug(f"Tool: {TaskTrackerTool.name} registered.")
 
     if enable_browser:
-        from openhands.tools.browser_use import BrowserToolSet
+        from tools.browser_use import BrowserToolSet
 
         logger.debug(f"Tool: {BrowserToolSet.name} registered.")
 
@@ -47,13 +47,13 @@ def get_gemini_tools(
     """
     register_gemini_tools(enable_browser=enable_browser)
 
-    from openhands.tools.gemini import (
+    from tools.gemini import (
         EditTool,
         ListDirectoryTool,
         ReadFileTool,
         WriteFileTool,
     )
-    from openhands.tools.task_tracker import TaskTrackerTool
+    from tools.task_tracker import TaskTrackerTool
 
     tools = [
         # Tool(name=TerminalTool.tool_name),
@@ -64,7 +64,7 @@ def get_gemini_tools(
         Tool(name=TaskTrackerTool.tool_name),
     ]
     if enable_browser:
-        from openhands.tools.browser_use import BrowserToolSet
+        from tools.browser_use import BrowserToolSet
 
         tools.append(Tool(name=BrowserToolSet.tool_name))
     return tools

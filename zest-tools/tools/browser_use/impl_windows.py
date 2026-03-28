@@ -4,7 +4,7 @@ import os
 import shutil
 from pathlib import Path
 
-from openhands.tools.browser_use.impl import BrowserToolExecutor
+from tools.browser_use.impl import BrowserToolExecutor
 
 
 class WindowsBrowserToolExecutor(BrowserToolExecutor):

@@ -1,10 +1,10 @@
 # Core tool interface
-from openhands.tools.grep.definition import (
+from tools.grep.definition import (
     GrepAction,
     GrepObservation,
     GrepTool,
 )
-from openhands.tools.grep.impl import GrepExecutor
+from tools.grep.impl import GrepExecutor
 
 
 __all__ = [

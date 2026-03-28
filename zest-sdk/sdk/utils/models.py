@@ -98,18 +98,11 @@ def _get_checked_concrete_subclasses(cls: type) -> dict[str, type]:
     return result
 
 
-class OpenHandsModel(BaseModel):
-    """Deprecated: This class exists only for backward compatibility.
-
-    This class is no longer required for discriminated union support.
-    New code should extend pydantic.BaseModel directly instead of OpenHandsModel.
-
-    Existing code that extends OpenHandsModel will continue to work, but
-    migration to BaseModel is recommended.
-    """
+class ZestAgent(BaseModel):
+    pass
 
 
-class DiscriminatedUnionMixin(OpenHandsModel):
+class DiscriminatedUnionMixin(ZestAgent):
     @computed_field
     @property
     def kind(self) -> str:

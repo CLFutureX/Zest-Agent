@@ -14,7 +14,7 @@ from sdk import (
     ThinkingBlock,
 )
 from sdk.tool import Tool
-from openhands.tools.terminal import TerminalTool
+from tools.terminal import TerminalTool
 
 
 # Configure LLM for Anthropic Claude with extended thinking

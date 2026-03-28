@@ -1,6 +1,6 @@
 """Browser tools using browser-use integration."""
 
-from openhands.tools.browser_use.definition import (
+from tools.browser_use.definition import (
     BrowserClickAction,
     BrowserClickTool,
     BrowserCloseTabAction,

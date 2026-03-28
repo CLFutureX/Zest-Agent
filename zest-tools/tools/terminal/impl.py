@@ -8,12 +8,12 @@ from sdk.tool import ToolExecutor
 
 if TYPE_CHECKING:
     from sdk.conversation import LocalConversation
-from openhands.tools.terminal.definition import (
+from tools.terminal.definition import (
     TerminalAction,
     TerminalObservation,
 )
-from openhands.tools.terminal.terminal.factory import create_terminal_session
-from openhands.tools.terminal.terminal.terminal_session import TerminalSession
+from tools.terminal.terminal.factory import create_terminal_session
+from tools.terminal.terminal.terminal_session import TerminalSession
 
 
 logger = get_logger(__name__)

@@ -20,9 +20,9 @@ from sdk import (
     get_logger,
 )
 from sdk.tool.spec import Tool
-from openhands.tools.file_editor import FileEditorTool
-from openhands.tools.task_tracker import TaskTrackerTool
-from openhands.tools.terminal import TerminalTool
+from tools.file_editor import FileEditorTool
+from tools.task_tracker import TaskTrackerTool
+from tools.terminal import TerminalTool
 
 
 logger = get_logger(__name__)

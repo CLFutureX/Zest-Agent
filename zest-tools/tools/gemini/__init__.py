@@ -15,7 +15,7 @@ Usage:
     replace FileEditorTool with the four gemini tools:
 
     ```python
-    from openhands.tools.gemini import GEMINI_FILE_TOOLS
+    from tools.gemini import GEMINI_FILE_TOOLS
 
     agent = Agent(
         llm=llm,
@@ -29,7 +29,7 @@ Usage:
     Or individually:
 
     ```python
-    from openhands.tools.gemini import (
+    from tools.gemini import (
         ReadFileTool, WriteFileTool, EditTool, ListDirectoryTool
     )
 
@@ -47,18 +47,18 @@ Usage:
 """
 
 from sdk import Tool
-from openhands.tools.gemini.edit import EditAction, EditObservation, EditTool
-from openhands.tools.gemini.list_directory import (
+from tools.gemini.edit import EditAction, EditObservation, EditTool
+from tools.gemini.list_directory import (
     ListDirectoryAction,
     ListDirectoryObservation,
     ListDirectoryTool,
 )
-from openhands.tools.gemini.read_file import (
+from tools.gemini.read_file import (
     ReadFileAction,
     ReadFileObservation,
     ReadFileTool,
 )
-from openhands.tools.gemini.write_file import (
+from tools.gemini.write_file import (
     WriteFileAction,
     WriteFileObservation,
     WriteFileTool,

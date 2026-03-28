@@ -5,22 +5,22 @@ import time
 from enum import Enum
 
 from sdk.logger import get_logger
-from openhands.tools.terminal.constants import (
+from tools.terminal.constants import (
     CMD_OUTPUT_PS1_END,
     NO_CHANGE_TIMEOUT_SECONDS,
     POLL_INTERVAL,
     TIMEOUT_MESSAGE_TEMPLATE,
 )
-from openhands.tools.terminal.definition import (
+from tools.terminal.definition import (
     TerminalAction,
     TerminalObservation,
 )
-from openhands.tools.terminal.metadata import CmdOutputMetadata
-from openhands.tools.terminal.terminal.interface import (
+from tools.terminal.metadata import CmdOutputMetadata
+from tools.terminal.terminal.interface import (
     TerminalInterface,
     TerminalSessionBase,
 )
-from openhands.tools.terminal.utils.command import (
+from tools.terminal.utils.command import (
     escape_bash_special_chars,
     split_bash_commands,
 )

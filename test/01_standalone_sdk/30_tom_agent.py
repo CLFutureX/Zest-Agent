@@ -12,8 +12,8 @@ from pydantic import SecretStr
 
 from sdk import LLM, Agent, Conversation
 from sdk.tool import Tool
-from openhands.tools.preset.default import get_default_tools
-from openhands.tools.tom_consult import (
+from tools.preset.default import get_default_tools
+from tools.tom_consult import (
     SleeptimeComputeAction,
     SleeptimeComputeTool,
     TomConsultTool,
