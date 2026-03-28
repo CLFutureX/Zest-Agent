@@ -1,9 +1,6 @@
 from datetime import datetime
 
 from pydantic import BaseModel, Field
-from streamlit import user
-
-
 class ExecutionTrace(BaseModel):
     tool_name: str = Field(
         description="Name of the tool used (fill in 'None' if no tool is used). "

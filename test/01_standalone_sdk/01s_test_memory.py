@@ -61,11 +61,11 @@ experience = ExperienceMemory(
     feedback_type="positive",
     created_at=current_time,
 )
-memory_manager.build_experience(
-    experience=experience 
-)
-memory_manager._search_experience_memory(user_id=user_id, content="输出3条具有实践意义，且有助于学习进步的哲理")
-# memory_manager._search_experience_memory(
+# memory_manager.build_experience(
+#     experience=experience 
+# )
+# memory_manager._search_experience_memory(user_id=user_id, content="输出3条具有实践意义，且有助于学习进步的哲理")
+# # memory_manager._search_experience_memory(
 #     user_id=user_id,
 #     content="请记住，我的邮箱 7755233@qq.com",
 # )
@@ -101,6 +101,8 @@ message = Message(
     role="user",
     content=[TextContent(text="输出3条具有实践意义，且有助于学习进步的哲理，请务必先思考，在回答")],
 )
+conversation.send_message(message)
+conversation.run()
 message = Message(
     user_id=user_id,
     role="user",

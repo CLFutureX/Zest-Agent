@@ -28,7 +28,7 @@ from sdk.security.confirmation_policy import (
     NeverConfirm,
 )
 from sdk.utils.cipher import Cipher
-from sdk.utils.models import OpenHandsModel
+from sdk.utils.models import ZestAgent
 from sdk.workspace.base import BaseWorkspace
 
 
@@ -50,7 +50,7 @@ class ConversationExecutionStatus(str, Enum):
     DELETING = "deleting"  # Conversation is in the process of being deleted
 
 
-class ConversationState(OpenHandsModel):
+class ConversationState(ZestAgent):
     """会话状态 - 存储会话级别的公共共享数据
 
     职责：
@@ -211,7 +211,12 @@ class ConversationState(OpenHandsModel):
                 "redacted and lost on restore. Consider providing a cipher to "
                 "preserve secrets."
             )
+        print(f"context type: {type(context)}")
+        print(f"context attributes: {dir(context) if hasattr(context, '__dict__') else 'no __dict__'}")
+        print(f"context keys: {context.keys() if isinstance(context, dict) else 'not a dict'}")
         payload = self.model_dump_json(exclude_none=True, context=context)
+     
+        # payload = self.model_dump_json(exclude_none=True, context=context)
         fs.write(BASE_STATE, payload, cache=False)
 
     def set_load_base_memory(self):

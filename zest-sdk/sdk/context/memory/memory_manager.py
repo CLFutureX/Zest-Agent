@@ -66,6 +66,7 @@ class MemoryManager(BaseModel):
                 verify_certs=elastic_config.verify_certs,
                 headers=elastic_config.headers or {},
             )
+        print("Hosts:", [f"{elastic_config.host}" if elastic_config.port is None else f"{elastic_config.host}:{elastic_config.port}"])
         self._collection_name = elastic_config.collection_name
         self._embedding_dims = elastic_config.embedding_model_dims
 
@@ -258,6 +259,7 @@ class MemoryManager(BaseModel):
                     "question",
                     "solution",
                     "domain_type",
+                    "execute_trace",
                     "feedback_type",
                     "created_at",
                     "updated_at",
@@ -295,7 +297,7 @@ class MemoryManager(BaseModel):
                         user_id=source.get("user_id", "无"),
                         question=source.get("question", "无"),
                         solution=source.get("solution", "无"),
-                        execute_trace=source.get("execute_trace", "无"),
+                        execute_trace=source.get("execute_trace", []),
                         domain_type=source.get("domain_type", "无"),
                         feedback_type=source.get("feedback_type", "无"),
                         created_at=source.get("created_at"),
@@ -401,7 +403,7 @@ class MemoryManager(BaseModel):
             updated_at_str = updated_at.strftime("%Y-%m-%d %H:%M:%S")
             # =======================================================
             
-            execute_trace_dicts = [trace.model_dump_json() for trace in experience.execute_trace]
+            execute_trace_dicts = [trace.model_dump() for trace in experience.execute_trace]
             doc = {
                 "user_id": experience.user_id,
                 "question": experience.question,

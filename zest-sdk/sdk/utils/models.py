@@ -99,7 +99,7 @@ def _get_checked_concrete_subclasses(cls: type) -> dict[str, type]:
 
 
 class ZestAgent(BaseModel):
-    unique_id: str | None = None
+    """顶层类"""
     
 
 
@@ -160,7 +160,7 @@ class DiscriminatedUnionMixin(ZestAgent):
             exclude_unset=info.exclude_unset,
             exclude_defaults=info.exclude_defaults,
             exclude_none=info.exclude_none,
-            exclude_computed_fields=info.exclude_computed_fields,
+            # exclude_computed_fields=info.exclude_computed_fields,
             round_trip=info.round_trip,
             serialize_as_any=info.serialize_as_any,
         )

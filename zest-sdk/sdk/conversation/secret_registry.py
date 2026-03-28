@@ -6,13 +6,13 @@ from pydantic import Field, PrivateAttr, SecretStr
 
 from sdk.logger import get_logger
 from sdk.secret import SecretSource, SecretValue, StaticSecret
-from sdk.utils.models import OpenHandsModel
+from sdk.utils.models import ZestAgent
 
 
 logger = get_logger(__name__)
 
 
-class SecretRegistry(OpenHandsModel):
+class SecretRegistry(ZestAgent):
     """Manages secrets and injects them into bash commands when needed.
 
     The secret registry stores a mapping of secret keys to SecretSources

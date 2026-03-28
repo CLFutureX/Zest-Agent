@@ -484,7 +484,7 @@ class ToolDefinition[ActionT, ObservationT](DiscriminatedUnionMixin, ABC):
             f"Expected one of: {possible_kinds_str}. "
             f"If you receive this error when trying to wrap a DiscriminatedUnion "
             f"instance inside another pydantic model, you may need to use "
-            f"OpenHandsModel instead of BaseModel to make sure that an invalid "
+            f"ZestAgent instead of BaseModel to make sure that an invalid "
             f"schema has not been cached."
         )
         raise ValueError(error_msg)
