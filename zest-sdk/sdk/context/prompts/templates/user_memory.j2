@@ -1,0 +1,24 @@
+<MEMORY>
+  【用户记忆参考】
+  以下是该用户的相关记忆信息，请你：
+  1. 优先结合这些信息理解用户当前的提问背景和潜在需求；
+  2. 仅在与用户当前问题相关时自然融入记忆信息，不主动泄露未提及的敏感内容；
+  3. 若记忆信息与当前问题无关，无需刻意提及；
+  4. 经验信息按时间倒序参考，最新经验优先级更高。
+  5. 对于非正向反馈的经验信息，你在接下来的决策中，请避免采用了相同的解决方案。
+  6. 对于正向反馈的经验信息，可能会有助于你解决当前的问题，你在接下来的决策中，可以借鉴此解决方案。
+
+  {% if need_load_memory and base_memory %}
+  <基本信息>
+  {{ base_memory | trim }}
+  </基本信息>
+  {% endif %}
+
+  {% if experience_memory and experience_memory|length > 0 %}
+  <经验信息>
+  {% for exp in experience_memory %}
+  - 问题{{ exp.question }} | 解决方案：{{ exp.solution }} | 反馈类型：{{ exp.feedback_type }}
+  {% endfor %}
+  </经验信息>
+  {% endif %}
+</MEMORY>
