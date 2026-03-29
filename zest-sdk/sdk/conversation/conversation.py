@@ -74,6 +74,7 @@ class Conversation:
             type[ConversationVisualizerBase] | ConversationVisualizerBase | None
         ) = DefaultConversationVisualizer,
         secrets: dict[str, SecretValue] | dict[str, str] | None = None,
+        user_id: str | None = None,
     ) -> "LocalConversation": ...
 
     @overload
@@ -118,6 +119,7 @@ class Conversation:
             type[ConversationVisualizerBase] | ConversationVisualizerBase | None
         ) = DefaultConversationVisualizer,
         secrets: dict[str, SecretValue] | dict[str, str] | None = None,
+        user_id: str | None = None,
     ) -> BaseConversation:
         from sdk.conversation.impl.local_conversation import LocalConversation
         from sdk.conversation.impl.remote_conversation import (
@@ -159,4 +161,5 @@ class Conversation:
             workspace=workspace,
             persistence_dir=persistence_dir,
             secrets=secrets,
+            user_id=user_id,
         )
