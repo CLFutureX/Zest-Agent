@@ -4,11 +4,12 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from sdk.agent.base import AgentBase
-from sdk.context.agent_state import (
-    AgentEventPersistentConsumer,
+from sdk.context.agent_state import ( 
     AgentStateRegistry,
     AgentStateRegistryConsumer,
 )
+from sdk.context.agent_state_consumer import AgentEventPersistentConsumer
+from sdk.context.memory.memory_manager import ExperienceMemoryConsumer
 from sdk.context.prompts.prompt import render_template
 from sdk.conversation.base import BaseConversation
 from sdk.conversation.secret_registry import SecretValue
@@ -53,6 +54,7 @@ from sdk.security.analyzer import SecurityAnalyzerBase
 from sdk.security.confirmation_policy import (
     ConfirmationPolicyBase,
 )
+from sdk.tool.builtins.experience_memory_tool import ExperienceMemoryTool
 from sdk.utils.cipher import Cipher
 from sdk.workspace import LocalWorkspace
 
@@ -179,6 +181,7 @@ class LocalConversation(BaseConversation):
             max_iterations=max_iteration_per_run,
             stuck_detection=stuck_detection,
             cipher=cipher,
+            user_id = user_id,
         )
         # ===== 初始化 EventCenter =====
         self._event_center = EventCenter()
@@ -286,6 +289,13 @@ class LocalConversation(BaseConversation):
         self._event_center.subscribe(
             AgentStateRegistryConsumer(conversation_id=self.desired_id)
         )
+        if self.agent.agent_context and self.agent.agent_context.memory_manager:
+            self._event_center.subscribe(
+                ExperienceMemoryConsumer(
+                    conversation_id=self.desired_id,
+                    memory_manager=self.agent.agent_context.memory_manager,
+                )
+            )
 
     @property
     def id(self) -> ConversationID:
@@ -467,6 +477,7 @@ class LocalConversation(BaseConversation):
             self.llm_registry.subscribe(self._state.stats.register_llm)
             for llm in list(self.agent.get_all_llms()):
                 self.llm_registry.add(llm)
+             
 
             self._agent_ready = True
 

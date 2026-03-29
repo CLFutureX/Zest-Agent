@@ -3,15 +3,18 @@ import random
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Literal, List, Optional
+from typing import TYPE_CHECKING, Literal, List, Optional
 
 from pydantic import Field, BaseModel
 from rich.text import Text
-
-from sdk.agent.runner_context import RunnerContext
+ 
 from sdk.context.memory.base import ExecutionTrace, ExperienceMemory
+from sdk.tool.registry import register_tool
 from sdk.tool.schema import Action, Observation
 from sdk.tool.tool import ToolAnnotations, ToolDefinition, ToolExecutor
+if TYPE_CHECKING:
+    from sdk.agent.runner_context import RunnerContext 
+    from sdk.conversation.state import ConversationState
 
 
 # 新增：对应Prompt中的ExecutionTrace模型，用于记录工具调用及思考过程
@@ -175,7 +178,7 @@ class ExperienceMemoryExecutor(ToolExecutor):
     def __call__(
         self,
         action: ExperienceMemoryAction,
-        context: Optional[RunnerContext] = None,
+        context: "RunnerContext | None" = None,
     ) -> ExperienceMemoryObservation:
         try:
             # 1. 校验核心字段（严格遵循Prompt注意事项，避免缺失/错误）
@@ -251,7 +254,7 @@ class ExperienceMemoryTool(
     "根据用户反馈总结最近的问题及解决过程，生成结构化经验数据，供后续Agent复用，实现经验沉淀。"""
     @classmethod
     def create(
-        cls, storage_path: str = "./agent_experiences"
+        cls, storage_path: str = "./agent_experiences",conv_state: "ConversationState | None" = None,
     ) -> Sequence["ExperienceMemoryTool"]:
         return [
             cls(
@@ -278,3 +281,5 @@ class ExperienceMemoryTool(
                 ),
             )
         ]
+
+register_tool(name=ExperienceMemoryTool.tool_name, factory=ExperienceMemoryTool)

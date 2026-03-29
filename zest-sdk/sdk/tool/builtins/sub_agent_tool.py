@@ -20,7 +20,8 @@ from rich.text import Text
 from sdk.agent.agent_runner import AgentRunner
 from sdk.agent.base import AgentBase
 from sdk.agent.runner_context import RunnerContext
-from sdk.context.agent_state import AgentEventPersistentConsumer, AgentState
+from sdk.context.agent_state import   AgentState
+from sdk.context.agent_state_consumer import AgentEventPersistentConsumer
 from sdk.event.llm_convertible.observation import ObservationEvent
 from sdk.llm.message import TextContent
 from sdk.logger import get_logger

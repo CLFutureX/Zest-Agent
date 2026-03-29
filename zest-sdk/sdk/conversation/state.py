@@ -237,6 +237,7 @@ class ConversationState(ZestAgent):
         max_iterations: int = 500,
         stuck_detection: bool = True,
         cipher: Cipher | None = None,
+        user_id: str | None = None,
     ) -> "ConversationState":
         """Create a new conversation state or resume from persistence.
 
@@ -361,6 +362,7 @@ class ConversationState(ZestAgent):
             stuck_detection=stuck_detection,
         )
         state._fs = file_store
+        state._user_id = user_id
         state._cipher = cipher
         state.stats = ConversationStats()
 

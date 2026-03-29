@@ -33,9 +33,9 @@
   - 执行轨迹（共 {{ exp.execute_trace | length }} 步）：
     {% for trace in exp.execute_trace %}
     步骤 {{ trace.step }}:
-      • 思考：{{ trace.thought | trim }}
-      {% if trace.tool_call %}• 调用工具：{{ trace.tool_call | trim }}{% endif %}
-      {% if trace.tool_result %}• 工具结果：{{ trace.tool_result | trim }}{% endif %}
+      
+      {% if trace.tool_name %}• 调用工具：{{ trace.tool_name | trim }}{% endif %}
+      {% if trace.choice_reason %}• 调用原因：{{ trace.choice_reason | trim }}{% endif %}
     {% endfor %}
   {% else %}
   - 执行轨迹：无记录

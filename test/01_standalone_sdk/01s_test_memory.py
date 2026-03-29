@@ -12,6 +12,8 @@ from sdk.context.memory.embedding.embedding_config import EmbeddingConfig
 from sdk.context.memory.embedding.openai_embedding import OpenAIEmbedding
 from sdk.context.memory.memory_manager import MemoryManager
 from sdk.llm.message import Message, TextContent
+from sdk.tool.builtins.experience_memory_tool import ExperienceMemoryTool
+from sdk.tool.spec import Tool
 
 
 api_key = os.getenv("LLM_API_KEY")
@@ -74,6 +76,7 @@ agent_context: AgentContext = AgentContext(memory_manager=memory_manager)
 agent = Agent(
     llm=llm,
     tools=[
+        Tool(name=ExperienceMemoryTool.tool_name),
         # Tool(name=TerminalTool.name),
         # Tool(name=FileEditorTool.name),
         # Tool(name=TaskTrackerTool.name),
@@ -83,7 +86,7 @@ agent = Agent(
 )  # type: ignore
 
 cwd = os.getcwd()  # 通过会话id 检索到未完成的会话。
-conversation = Conversation(agent=agent, workspace=cwd, persistence_dir=persistence_dir)
+conversation = Conversation(agent=agent, workspace=cwd, persistence_dir=persistence_dir,user_id=user_id)  # type: ignore
 
 # conversation.send_message(
 #     "分2次输出不同的 人生哲理，一次输出一条 ,严格分2次，不要一次输出2个 "
@@ -96,13 +99,13 @@ conversation = Conversation(agent=agent, workspace=cwd, persistence_dir=persiste
 # )
 # conversation.send_message(message)
 # conversation.run()
-message = Message(
-    user_id=user_id,
-    role="user",
-    content=[TextContent(text="输出3条具有实践意义，且有助于学习进步的哲理，请务必先思考，在回答")],
-)
-conversation.send_message(message)
-conversation.run()
+# message = Message(
+#     user_id=user_id,
+#     role="user",
+#     content=[TextContent(text="输出3条具有实践意义，且有助于学习进步的哲理，请务必先思考，在回答")],
+# )
+# conversation.send_message(message)
+# conversation.run()
 message = Message(
     user_id=user_id,
     role="user",

@@ -555,7 +555,7 @@ class ExperienceMemoryConsumer(EventConsumer):
         )
         self._memory_manager = memory_manager
         
-    def consume(self, event: ExperienceMemory) -> None:
+    def on_event(self, event: ExperienceMemory):
         # 这里可以根据事件类型调用 MemoryManager 的方法来更新记忆
         logger.info(f"ExperienceMemoryConsumer 收到事件：{event}")
         if self._memory_manager:
