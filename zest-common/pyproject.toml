@@ -1,0 +1,33 @@
+
+[project]
+name = "zest-common"
+version = "0.2.0"
+description = "Shared common package including storage abstractions for zest services"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic==2.11.7",
+    "cachetools>=5.3.0",
+    "filelock>=3.20.1",
+]
+
+[project.optional-dependencies]
+mongo = ["pymongo>=4.0.0"]
+es = ["elasticsearch==8.14.0"]
+s3 = ["boto3>=1.35.0"]
+all = ["pymongo>=4.0.0", "elasticsearch==8.14.0", "boto3>=1.35.0"]
+
+ 
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-dir]
+"" = "."
+
+[tool.setuptools.packages.find]
+include = ["common*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"*" = ["py.typed", "*.j2"]
+

@@ -1,0 +1,18 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: .venv",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "python": "D:\\spacex\\Zest-Agent\\.venv\\Scripts\\python.exe",
+            "env": {
+                "PYTHONPATH": "",
+                "VIRTUAL_ENV": "D:\\spacex\\Zest-Agent\\.venv"
+            },
+            "justMyCode": false
+        }
+    ]
+}

@@ -1,0 +1,49 @@
+{% if base_memory and experience_memory | length > 0 %}
+<MEMORY>
+
+以下是该用户的两类记忆信息，请严格遵循规则：
+
+  一、基础记忆（用户基本情况）
+  1. 用于理解用户身份、偏好、长期背景；
+  2. 始终参考，自然融入回答，不刻意提及。
+
+  二、经验记忆（历史交互经验）
+  1. 仅在与当前问题相关时参考；
+  2. 按时间倒序，**最新经验优先级最高**；
+  3. 正向反馈（POSITIVE）：可借鉴其解决方案与执行路径；
+  4. 负向反馈（NEGATIVE）：**禁止采用相同解决方案**；
+  5. 中性反馈（NEUTRAL）：仅作参考，不优先借鉴。
+
+  {% if base_memory %}
+  <基础记忆>
+  {{ base_memory | trim }}
+  </基础记忆>
+  {% endif %}
+
+  {% if experience_memory and experience_memory | length > 0 %}
+  <经验记忆>
+  {% for exp in experience_memory %}
+  ---
+  【经验 {{ loop.index }}】
+  - 问题：{{ exp.question | trim }}
+  - 解决方案：{{ exp.solution | trim }}
+  - 反馈类型：{{ exp.feedback_type | upper }}
+  - 适用领域：{{ exp.domain_type | default('通用', true) }} 
+
+  {% if exp.execute_trace | length > 0 %}
+  - 执行轨迹（共 {{ exp.execute_trace | length }} 步）：
+    {% for trace in exp.execute_trace %}
+    步骤 {{ trace.step }}:
+      
+      {% if trace.tool_name %}• 调用工具：{{ trace.tool_name | trim }}{% endif %}
+      {% if trace.choice_reason %}• 调用原因：{{ trace.choice_reason | trim }}{% endif %}
+    {% endfor %}
+  {% else %}
+  - 执行轨迹：无记录
+  {% endif %}
+  ---
+  {% endfor %}
+  </经验记忆>
+  {% endif %}
+</MEMORY>
+{% endif %}
