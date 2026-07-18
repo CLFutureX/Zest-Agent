@@ -1,0 +1,12 @@
+{
+  "name": "Zest-settings",
+  "displayName": "Zest Settings",
+  "description": "Auto-configure VSCode settings for Zest",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["*"],
+  "main": "./extension.js"
+}

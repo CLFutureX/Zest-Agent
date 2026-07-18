@@ -1,0 +1,84 @@
+# syntax=docker/dockerfile:1.7
+#
+# Zest-Agent execution plane (zest-service) image.
+# Runs FastAPI server on port 8001 with uvicorn.
+#
+# Build context: repository root
+#   docker build -t zest-service:latest -f docker/Dockerfile.service .
+#
+# This is the LIGHTWEIGHT service-only image. It does NOT include the
+# sandbox runtime (VSCode / VNC / noVNC / Docker-in-Docker) that lives in
+# zest-agent-server/zest-service/server/docker/Dockerfile. Use that
+# separate image when you need the agent to spawn graphical / interactive
+# sandboxes.
+#
+# If you intend to run tools that spin up Docker sandboxes from inside
+# this container, mount the host Docker socket at /var/run/docker.sock
+# and ensure the container user has permission to access it.
+
+########################################
+# Stage 1: builder
+########################################
+FROM python:3.13-slim AS builder
+
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv \
+    UV_PYTHON_INSTALL_DIR=/app/uv-python \
+    UV_LINK_MODE=copy \
+    PYTHONDONTWRITEBYTECODE=1
+
+COPY --from=ghcr.io/astral-sh/uv /uv /uvx /bin/
+
+WORKDIR /app
+
+# Cache-friendly: copy lockfile + all workspace pyproject.toml first.
+COPY pyproject.toml uv.lock ./
+COPY zest-app-server/pyproject.toml ./zest-app-server/
+COPY zest-common/pyproject.toml ./zest-common/
+COPY zest-agent-server/zest-sdk/pyproject.toml zest-agent-server/zest-sdk/README.md ./zest-agent-server/zest-sdk/
+COPY zest-agent-server/zest-tools/pyproject.toml zest-agent-server/zest-tools/README.md ./zest-agent-server/zest-tools/
+COPY zest-agent-server/zest-service/pyproject.toml ./zest-agent-server/zest-service/
+
+# Sources for the four packages this image actually needs.
+COPY zest-agent-server/zest-service/server ./zest-agent-server/zest-service/server
+COPY zest-agent-server/zest-sdk/sdk ./zest-agent-server/zest-sdk/sdk
+COPY zest-agent-server/zest-tools/tools ./zest-agent-server/zest-tools/tools
+COPY zest-common/common ./zest-common/common
+
+# Sync only the execution-plane package (uv pulls zest-sdk, zest-tools,
+# zest-common automatically as workspace dependencies).
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-editable --package zest-service
+
+########################################
+# Stage 2: runtime
+########################################
+FROM python:3.13-slim AS runtime
+
+# tmux is required by the bash tool (libtmux drives a tmux session per agent).
+# Other deps are pulled in transitively by zest-tools (e.g. browser-use deps).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        tmux ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV PATH=/app/.venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LOG_JSON=true
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/zest-agent-server/zest-service/server /app/server
+COPY --from=builder /app/zest-agent-server/zest-sdk/sdk /app/sdk
+COPY --from=builder /app/zest-agent-server/zest-tools/tools /app/tools
+COPY --from=builder /app/zest-common/common /app/common
+
+# Make the local packages importable. Same safety net as in Dockerfile.app-server.
+RUN echo "/app" > /app/.venv/lib/python3.13/site-packages/_zest_local_root.pth
+
+EXPOSE 8001
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/health').status==200 else 1)" || exit 1
+
+CMD ["python", "-m", "server", "--host", "0.0.0.0", "--port", "8001"]

@@ -1,0 +1,15 @@
+[tool.uv.workspace]
+members = [
+    "zest-agent-server/zest-sdk",
+    "zest-agent-server/zest-tools",
+    "zest-app-server",
+    "zest-agent-server/zest-service",
+    "zest-common"
+]
+
+[tool.uv.sources]
+zest-sdk = { workspace = true }
+zest-tools = { workspace = true }
+zest-app-server = { workspace = true }
+zest-service = { workspace = true }
+zest-common = { workspace = true }

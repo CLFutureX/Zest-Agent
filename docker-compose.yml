@@ -1,0 +1,148 @@
+# Zest-Agent Docker Compose
+#
+# Default profile: infrastructure only (Redis + MySQL) for local development.
+#   docker compose up -d
+#
+# Full stack profile: also bring up the three Zest services.
+#   docker compose --profile app up -d
+#
+# Optional services: MongoDB and Elasticsearch (8.8.2) are behind the `storage` profile.
+#   docker compose --profile storage up -d mongo elasticsearch
+
+name: zest-agent
+
+services:
+  # ===== Infrastructure (default) =====
+  redis:
+    image: redis:7-alpine
+    container_name: zest-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  mysql:
+    image: mysql:8.0
+    container_name: zest-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-zest_agent}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ===== Optional storage backends (profile: storage) =====
+  mongo:
+    image: mongo:7
+    container_name: zest-mongo
+    restart: unless-stopped
+    profiles: ["storage"]
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-zest_agent}
+    volumes:
+      - mongo-data:/data/db
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.2
+    container_name: zest-elasticsearch
+    restart: unless-stopped
+    profiles: ["storage"]
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+  # ===== Zest services (profile: app) =====
+  # `docker compose --profile app up -d --build` will build the three
+  # images from docker/Dockerfile.{web,app-server,service} automatically.
+  # For local dev without Docker, use ./scripts/start-dev.{sh,ps1} instead.
+
+  zest-web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+      args:
+        VITE_APP_API_BASE: ${VITE_APP_API_BASE:-http://127.0.0.1:9000/api/v1}
+    image: zest-web:latest
+    container_name: zest-web
+    restart: unless-stopped
+    profiles: ["app"]
+    depends_on:
+      - zest-app-server
+      - zest-service
+    ports:
+      - "5173:80"
+
+  zest-app-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.app-server
+    image: zest-app-server:latest
+    container_name: zest-app-server
+    restart: unless-stopped
+    profiles: ["app"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    environment:
+      STORAGE_MODE: mysql
+      MYSQL_URL: mysql+aiomysql://root:${MYSQL_ROOT_PASSWORD:-root}@mysql:3306/${MYSQL_DATABASE:-zest_agent}
+      REDIS_URL: redis://redis:6379/0
+      ZEST_SECRET_KEY: ${ZEST_SECRET_KEY:-change-me-in-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "9000:9000"
+
+  zest-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.service
+    image: zest-service:latest
+    container_name: zest-service
+    restart: unless-stopped
+    profiles: ["app"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      ZEST_AGENT_SERVER_HOST: 0.0.0.0
+      ZEST_AGENT_SERVER_PORT: "8001"
+      ZEST_REGISTRY_ENABLED: "true"
+      ZEST_REGISTRY_REDIS_URL: redis://redis:6379/0
+      ZEST_SECRET_KEY: ${ZEST_SECRET_KEY:-change-me-in-production}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "8001:8001"
+    # If the agent needs to spawn Docker sandboxes, mount the host Docker socket.
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  redis-data:
+  mysql-data:
+  mongo-data:
+  es-data:

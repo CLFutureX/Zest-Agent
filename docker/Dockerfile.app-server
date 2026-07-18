@@ -1,0 +1,72 @@
+# syntax=docker/dockerfile:1.7
+#
+# Zest-Agent control plane (zest-app-server) image.
+# Runs FastAPI app on port 9000 with uvicorn.
+#
+# Build context: repository root
+#   docker build -t zest-app-server:latest -f docker/Dockerfile.app-server .
+#
+# Installs only the zest-app-server workspace package and its transitive
+# workspace dependency zest-common. zest-sdk / zest-tools / zest-service
+# are NOT installed because the control plane does not import them.
+
+########################################
+# Stage 1: builder
+########################################
+FROM python:3.13-slim AS builder
+
+ENV UV_PROJECT_ENVIRONMENT=/app/.venv \
+    UV_PYTHON_INSTALL_DIR=/app/uv-python \
+    UV_LINK_MODE=copy \
+    PYTHONDONTWRITEBYTECODE=1
+
+COPY --from=ghcr.io/astral-sh/uv /uv /uvx /bin/
+
+WORKDIR /app
+
+# Cache-friendly: copy lockfile + all workspace pyproject.toml first.
+# uv needs every workspace member's manifest to resolve the graph, even
+# if we only sync one package.
+COPY pyproject.toml uv.lock ./
+COPY zest-app-server/pyproject.toml zest-app-server/README.md ./zest-app-server/
+COPY zest-common/pyproject.toml ./zest-common/
+COPY zest-agent-server/zest-sdk/pyproject.toml ./zest-agent-server/zest-sdk/
+COPY zest-agent-server/zest-tools/pyproject.toml ./zest-agent-server/zest-tools/
+COPY zest-agent-server/zest-service/pyproject.toml ./zest-agent-server/zest-service/
+
+# Sources for the two packages this image actually needs.
+COPY zest-app-server/app ./zest-app-server/app
+COPY zest-common/common ./zest-common/common
+
+# Sync only the control-plane package (uv pulls zest-common automatically).
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev --no-editable --package zest-app-server
+
+########################################
+# Stage 2: runtime
+########################################
+FROM python:3.13-slim AS runtime
+
+ENV PATH=/app/.venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    LOG_JSON=true
+
+WORKDIR /app
+
+# Copy the venv (with all deps) and the application source.
+COPY --from=builder /app/.venv /app/.venv
+COPY --from=builder /app/zest-app-server/app /app/app
+COPY --from=builder /app/zest-common/common /app/common
+
+# Make the local packages importable. They were installed in editable-skip
+# mode above (--no-editable means uv builds wheels and installs them into
+# site-packages, so this .pth fallback is just a safety net).
+RUN echo "/app" > /app/.venv/lib/python3.13/site-packages/_zest_local_root.pth
+
+EXPOSE 9000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:9000/health').status==200 else 1)" || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "9000"]
