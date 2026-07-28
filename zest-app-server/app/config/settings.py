@@ -5,6 +5,7 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from typing import Literal, Optional
+from pathlib import Path
 import os
 
 from common.security.security_settings import get_cipher_from_env
@@ -83,8 +84,21 @@ class Settings(BaseSettings):
         # 目录不存在则自动创建
         if log_dir and not os.path.exists(log_dir):
             os.makedirs(log_dir, exist_ok=True)
+
+    @property
+    def resolved_registry_dir(self) -> str:
+        # 本地模式下把相对路径相对项目根 Zest-Agent 解析，确保
+        # app-server 与 agent-server 两侧扫描/写入到同一绝对目录。
+        p = Path(self.registry_dir)
+        if p.is_absolute():
+            return str(p)
+        return str((_PROJECT_ROOT / p).resolve())
     
     
+
+
+# 项目根锚点：app-server/app/config/settings.py 的 parents[3] 即 Zest-Agent
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 # 全局配置实例

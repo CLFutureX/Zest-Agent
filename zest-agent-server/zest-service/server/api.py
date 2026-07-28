@@ -71,11 +71,11 @@ async def api_lifespan(api: FastAPI) -> AsyncIterator[None]:
         if config.registry_backend == "local":
             from server.agent_registry import LocalAgentRegistryClient
             registry_client = LocalAgentRegistryClient(
-                registry_dir=config.registry_dir,
+                registry_dir=config.resolved_registry_dir,
                 server_info_provider=server_info_provider,
                 heartbeat_interval=config.heartbeat_interval,
             )
-            logger.info("Agent registry backend: local (dir=%s)", config.registry_dir)
+            logger.info("Agent registry backend: local (dir=%s)", config.resolved_registry_dir)
         else:
             redis_client = redis_from_url(config.registry_redis_url, decode_responses=True)
             registry_client = RedisAgentRegistryClient(

@@ -338,11 +338,11 @@ async def init_registry():
         if settings.registry_mode == "local":
             from app.core.registry.local_registry import LocalAgentRegistryServer
             _registry = LocalAgentRegistryServer(
-                registry_dir=settings.registry_dir,
+                registry_dir=settings.resolved_registry_dir,
                 heartbeat_timeout=settings.heartbeat_timeout,
                 watch_interval=settings.registry_watch_interval,
             )
-            logger.info("Registry backend: local (dir=%s)", settings.registry_dir)
+            logger.info("Registry backend: local (dir=%s)", settings.resolved_registry_dir)
         else:
             redis_client = redis_from_url(settings.redis_url, decode_responses=True)
             _registry = RedisAgentRegistryServer(

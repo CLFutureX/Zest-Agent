@@ -51,6 +51,8 @@ class WebhookSpec(BaseModel):
     retry_delay: int = Field(default=5, ge=0, description="The delay between retries")
 BASE_DIR = Path(__file__).parent.parent
 print(f"Base_DIR: {BASE_DIR}")
+# 项目根锚点：zest-service -> zest-agent-server -> Zest-Agent
+_PROJECT_ROOT = BASE_DIR.parent.parent
 class Config(BaseSettings):
     """
     Immutable configuration for a server running in local mode.
@@ -180,6 +182,15 @@ class Config(BaseSettings):
         "extra": "ignore",                   # 🔥 忽略无关环境变量（解决报错）
         "frozen": True,                      # 不可变，安全
     }
+
+    @property
+    def resolved_registry_dir(self) -> str:
+        # 本地模式下把相对路径相对项目根 Zest-Agent 解析，确保
+        # agent-server 写入与 app-server 扫描落到同一绝对目录。
+        p = Path(self.registry_dir)
+        if p.is_absolute():
+            return str(p)
+        return str((_PROJECT_ROOT / p).resolve())
 
     @property
     def cipher(self) -> Cipher | None:
