@@ -15,27 +15,25 @@ from common.query.conversation_read_facade import ConversationReadFacade
 from app.config.settings import settings
 
 from app.core.storage.base import (
-    AgentServerStorage,
     AppConversationStorage,
     PromptConfigStorage,
     SkillProfileStorage,
     SubAgentConfigStorage,
     TaskStorage,
     UserLlmConfigStorage,
+    UserStorage,
 )
 from app.core.loadbalancer import LoadBalancer, create_loadbalancer
 from app.core.services.task_service import TaskService
 from app.core.services.app_conversation_service import AppConversationService
 from app.core.services.agent_config_service import AgentConfigService
 from app.core.services.agent_profile_service import AgentProfileService
-from app.core.services.agent_service import AgentServerService
-from app.core.services.conversation_query_service import ConversationQueryService 
+from app.core.services.conversation_query_service import ConversationQueryService
 from app.core.services.scheduler import Scheduler
 from app.core.services.dispatcher import Dispatcher
 from app.core.services.auth_session_service import AuthSessionService
 from app.core.services.user_service import UserService
 from app.core.services.auth_service import AuthService
-from app.core.healthcheck import HealthChecker
 from app.core.registry.redis_registry import RedisAgentRegistryServer
 
 if TYPE_CHECKING:
@@ -48,7 +46,6 @@ logger = logging.getLogger(name=__name__)
 # ==============================
 _app_conversation_storage = None
 _task_storage = None
-_agent_server_storage = None
 _user_llm_config_storage = None
 _skill_profile_storage = None
 _prompt_config_storage = None
@@ -60,8 +57,7 @@ _conversation_read_facade = None
 _user_storage = None
 _auth_session_service = None
 # 服务注册中心
-_registry = None
-_health_checker = None
+_registry = None 
 _grpc_receiver = None
 _registry_watch_task = None
 
@@ -86,44 +82,51 @@ def get_task_storage() -> TaskStorage:
     return _task_storage
 
 
-def get_agent_server_storage() -> AgentServerStorage:
-    """获取AgentServer存储实例"""
-    global _agent_server_storage
-    if _agent_server_storage is None:
-        from app.core.storage.local import LocalFileAgentServerStorage
-        _agent_server_storage = LocalFileAgentServerStorage()
-    return _agent_server_storage
-
-
 def get_user_llm_config_storage() -> UserLlmConfigStorage:
     global _user_llm_config_storage
     if _user_llm_config_storage is None:
-        from app.core.storage.mongo import MongoUserLlmConfigStorage
-        _user_llm_config_storage = MongoUserLlmConfigStorage()
+        if settings.storage_mode == "mysql":
+            from app.core.storage.mysql import MysqlUserLlmConfigStorage
+            _user_llm_config_storage = MysqlUserLlmConfigStorage()
+        else:
+            from app.core.storage.local import LocalFileUserLlmConfigStorage
+            _user_llm_config_storage = LocalFileUserLlmConfigStorage()
     return _user_llm_config_storage
 
 
 def get_skill_profile_storage() -> SkillProfileStorage:
     global _skill_profile_storage
     if _skill_profile_storage is None:
-        from app.core.storage.mongo import MongoSkillProfileStorage
-        _skill_profile_storage = MongoSkillProfileStorage()
+        if settings.storage_mode == "mysql":
+            from app.core.storage.mysql import MysqlSkillProfileStorage
+            _skill_profile_storage = MysqlSkillProfileStorage()
+        else:
+            from app.core.storage.local import LocalFileSkillProfileStorage
+            _skill_profile_storage = LocalFileSkillProfileStorage()
     return _skill_profile_storage
 
 
 def get_prompt_config_storage() -> PromptConfigStorage:
     global _prompt_config_storage
     if _prompt_config_storage is None:
-        from app.core.storage.mongo import MongoPromptConfigStorage
-        _prompt_config_storage = MongoPromptConfigStorage()
+        if settings.storage_mode == "mysql":
+            from app.core.storage.mysql import MysqlPromptConfigStorage
+            _prompt_config_storage = MysqlPromptConfigStorage()
+        else:
+            from app.core.storage.local import LocalFilePromptConfigStorage
+            _prompt_config_storage = LocalFilePromptConfigStorage()
     return _prompt_config_storage
 
 
 def get_subagent_config_storage() -> SubAgentConfigStorage:
     global _subagent_config_storage
     if _subagent_config_storage is None:
-        from app.core.storage.mongo import MongoSubAgentConfigStorage
-        _subagent_config_storage = MongoSubAgentConfigStorage()
+        if settings.storage_mode == "mysql":
+            from app.core.storage.mysql import MysqlSubAgentConfigStorage
+            _subagent_config_storage = MysqlSubAgentConfigStorage()
+        else:
+            from app.core.storage.local import LocalFileSubAgentConfigStorage
+            _subagent_config_storage = LocalFileSubAgentConfigStorage()
     return _subagent_config_storage
 
 
@@ -211,26 +214,6 @@ def get_conversation_query_service() -> ConversationQueryService:
     )
 
 
-def get_agent_server_service() -> Generator[AgentServerService, None, None]:
-    """获取AgentServer服务（依赖注入）"""
-    agent_server_storage = get_agent_server_storage()
-    service = AgentServerService(
-        agent_server_storage=agent_server_storage,
-        heartbeat_timeout=settings.heartbeat_timeout
-    )
-    yield service
-
-
-def get_agent_server_service_direct() -> AgentServerService:
-    """直接返回 AgentServerService 实例（非 Generator，供非路由场景使用）"""
-    agent_server_storage = get_agent_server_storage()
-    return AgentServerService(
-        agent_server_storage=agent_server_storage,
-        heartbeat_timeout=settings.heartbeat_timeout
-    )
-
-
-
 def get_user_storage():
     """Return the initialized user storage (set by init_storage)."""
     global _user_storage
@@ -281,7 +264,7 @@ async def _seed_default_user():
 # ==============================
 async def init_storage():
     """初始化存储（应用启动时调用）"""
-    global _app_conversation_storage, _task_storage, _agent_server_storage
+    global _app_conversation_storage, _task_storage
     global _user_llm_config_storage, _skill_profile_storage, _prompt_config_storage, _subagent_config_storage
     global _load_balancer, _user_storage
 
@@ -290,32 +273,31 @@ async def init_storage():
             init_mysql_pool,
             MysqlAppConversationStorage,
             MysqlTaskStorage,
-            MysqlAgentServerStorage
         )
         await init_mysql_pool(settings.mysql_url)
 
         from app.core.storage.mysql import MysqlUserStorage
         _app_conversation_storage = MysqlAppConversationStorage()
         _task_storage = MysqlTaskStorage()
-        _agent_server_storage = MysqlAgentServerStorage()
         _user_storage = MysqlUserStorage()
 
         await _app_conversation_storage.ensure_indexes()
         await _task_storage.ensure_indexes()
-        await _agent_server_storage.ensure_indexes()
         await _user_storage.ensure_indexes()
 
     else:
         from app.core.storage.local import (
             LocalFileAppConversationStorage,
             LocalFileTaskStorage,
-            LocalFileAgentServerStorage
+            LocalFileUserStorage,
         )
-        from app.core.storage.local import InMemoryUserStorage
         _app_conversation_storage = LocalFileAppConversationStorage()
         _task_storage = LocalFileTaskStorage()
-        _agent_server_storage = LocalFileAgentServerStorage()
-        _user_storage = InMemoryUserStorage()
+        _user_storage = LocalFileUserStorage()
+
+        await _app_conversation_storage.ensure_indexes()
+        await _task_storage.ensure_indexes()
+        await _user_storage.ensure_indexes()
 
     _user_llm_config_storage = get_user_llm_config_storage()
     _skill_profile_storage = get_skill_profile_storage()
@@ -332,7 +314,7 @@ async def init_storage():
 
 async def init_registry():
     """初始化服务注册中心（应用启动时调用）"""
-    global _registry, _health_checker, _grpc_receiver, _registry_watch_task
+    global _registry,  _grpc_receiver, _registry_watch_task
 
     if _registry is None:
         if settings.registry_mode == "local":
@@ -356,11 +338,9 @@ async def init_registry():
 
 async def close_registry():
     """关闭服务注册中心（应用关闭时调用）"""
-    global _registry, _health_checker, _registry_watch_task
+    global _registry,  _registry_watch_task
 
-    if _health_checker:
-        await _health_checker.stop()
-        _health_checker = None
+ 
 
     if _registry_watch_task:
         _registry_watch_task.cancel()
@@ -383,14 +363,4 @@ def get_registry() -> "AgentRegistryServer":
     return _registry
 
 
-def get_health_checker() -> HealthChecker:
-    """获取健康检查器实例"""
-    global _health_checker
-    if _health_checker is None:
-        registry = get_registry()
-        _health_checker = HealthChecker(
-            registry=registry,
-            check_interval=settings.health_check_interval,
-            heartbeat_timeout=settings.heartbeat_timeout,
-        )
-    return _health_checker
+ 

@@ -84,34 +84,6 @@ class TaskStorage(ABC):
         pass
 
 
-class AgentServerStorage(ABC):
-    """AgentServer存储抽象接口"""
-
-    @abstractmethod
-    async def register_server(self, server: AgentServerInfo) -> bool:
-        pass
-
-    @abstractmethod
-    async def deregister_server(self, server_id: str) -> bool:
-        pass
-
-    @abstractmethod
-    async def get_server(self, server_id: str) -> Optional[AgentServerInfo]:
-        pass
-
-    @abstractmethod
-    async def update_server(self, server_id: str, updates: dict) -> bool:
-        pass
-
-    @abstractmethod
-    async def list_healthy_servers(self) -> List[AgentServerInfo]:
-        pass
-
-    @abstractmethod
-    async def list_all_servers(self) -> List[AgentServerInfo]:
-        pass
-
-
 class UserLlmConfigStorage(ABC):
     """用户 LLM 配置存储接口，仅提供资源读写能力。"""
 

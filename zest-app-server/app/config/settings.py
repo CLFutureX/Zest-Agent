@@ -25,8 +25,6 @@ class Settings(BaseSettings):
     # 存储配置
     storage_mode: Literal["mysql", "local"] = "local"
     mysql_url: str = "mysql+aiomysql://root:root@localhost:3306/zest_agent"
-    mongo_url: str = "mongodb://localhost:27017"
-    mongo_database: str = "zest_agent"
     local_data_dir: str = "./data"
     
     # 服务注册配置
@@ -40,7 +38,7 @@ class Settings(BaseSettings):
     
     # 负载均衡配置
     lb_strategy: str = "session_affinity"
-    health_check_interval: int = 10  # 秒
+     
     
     # Agent Runtime 直连配置
 
