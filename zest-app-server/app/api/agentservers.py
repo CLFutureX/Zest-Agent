@@ -4,9 +4,8 @@ AgentServer管理路由
 """
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
-from app.core.healthcheck import HealthChecker
 from app.core.models import  ServerStatus
-from app.api.dependencies import   get_health_checker, get_registry
+from app.api.dependencies import   get_registry
 from app.core.registry import AgentRegistryServer
 
 router = APIRouter(prefix="/api/v1/agentservers", tags=["agentservers"])
@@ -76,7 +75,7 @@ async def get_server(
 @router.post("/health-check")
 async def health_check(
     agent_registry: AgentRegistryServer = Depends(get_registry),
-    health_checker: HealthChecker = Depends(get_health_checker),
+     
 ):
     """
     执行健康检查
