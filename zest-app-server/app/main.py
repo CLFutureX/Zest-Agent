@@ -87,14 +87,25 @@ app = FastAPI(
 )
 
 # 配置 CORS
-# 注意：allow_origins + allow_credentials 不能同时为 ["*"]，浏览器会拒绝。
-# 默认放开所有来源但不带凭证；生产请改成具体域名白名单并启用 allow_credentials=True。
+# 前端 auth 接口使用 credentials: "include" 携带 cookie 会话，
+# 因此 allow_credentials 必须为 True，且 allow_origins 不能为 ["*"]，
+# 必须是具体 Origin 白名单（浏览器规范要求 Allow-Origin 不能回显 * 当 Allow-Credentials=true）。
+import os as _os
+_DEFAULT_CORS_ORIGINS = [
+    "http://localhost:5173",   # vite dev server
+    "http://127.0.0.1:5173",
+    "http://localhost:4173",   # vite preview
+    "http://127.0.0.1:4173",
+]
+_CORS_ORIGINS_ENV = _os.environ.get("ZEST_CORS_ORIGINS")
+allow_origins = [o.strip() for o in _CORS_ORIGINS_ENV.split(",") if o.strip()] if _CORS_ORIGINS_ENV else _DEFAULT_CORS_ORIGINS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=allow_origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # 注册路由（各 router 自带 /api/v1 前缀）

@@ -600,6 +600,49 @@ class LocalConversation(BaseConversation):
                     agent_id=self.agent.id,
                 )
                 logger.info(f"Rejected pending action: {action_event} - {reason}")
+    def respond_to_memory_review(self, payload: dict) -> None:
+        """处理 memory_review 工具审核回执：构造 ObservationEvent 投递给 agent。
+
+        payload 形如 {"tool_name": "memory_review", "selected_id": "...", "edited_content": "..."}。
+        找到 pending memory_review ActionEvent，发布匹配的 MemoryReviewObservation，
+        让该 action 在下次 run() 时不再被 get_unmatched_actions 取出（已匹配），
+        agent 主循环会消费该 observation 并决定下一步（携带 experience_id 调 experience_memory）。
+        """
+        from sdk.tool.builtins.memory_review_tool import MemoryReviewObservation
+        from sdk.event.llm_convertible.observation import ObservationEvent
+
+        pending = self.main_agent_state.get_unmatched_actions(self.events)
+        target = next((ae for ae in pending if getattr(ae, "tool_name", None) == "memory_review"), None)
+        if target is None:
+            logger.warning("respond_to_memory_review: no pending memory_review action found")
+            return
+
+        selected_id = payload.get("selected_id")
+        edited_content = payload.get("edited_content")
+        observation = MemoryReviewObservation(
+            success=True,
+            selected_id=selected_id,
+            edited_content=edited_content,
+        )
+
+        with self._state:
+            main_agent_state = self._state.get_main_agent_state()
+            if not main_agent_state:
+                raise RuntimeError("MainAgent state not found")
+            if main_agent_state.execution_status == ExecutionStatus.WAITING_FOR_CONFIRMATION:
+                main_agent_state.set_execution_status(ExecutionStatus.IDLE)
+            self._event_center.publish(
+                event=ObservationEvent(
+                    action_id=target.id,
+                    tool_name=target.tool_name,
+                    tool_call_id=target.tool_call_id,
+                    observation=observation,
+                ),
+                conversation_id=self.id,
+                agent_id=self.agent.id,
+            )
+            logger.info(f"memory_review review response published: action_id={target.id}, selected_id={selected_id}")
+
 
     def pause(self) -> None:
         """Pause agent execution.

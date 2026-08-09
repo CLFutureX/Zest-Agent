@@ -44,9 +44,12 @@ def register_memory_tools(tools: list[Tool],enable_base_memory: bool = True, ena
 
     if enable_experience_memory:
         from sdk.tool.builtins.experience_memory_tool import ExperienceMemoryTool
+        from sdk.tool.builtins.memory_review_tool import MemoryReviewTool
         logger.debug(f"Tool: {ExperienceMemoryTool.tool_name} registered.")
+        logger.debug(f"Tool: {MemoryReviewTool.tool_name} registered.")
         if tools:
             tools.append(Tool(name=ExperienceMemoryTool.tool_name))
+            tools.append(Tool(name=MemoryReviewTool.tool_name))
 
 def register_sale_tools(tools:list[Tool])->None:
     from tools.after_sales_demo.aftersale_qty_tools import QueryForwardOrderTool,QueryAfterSaleOrderTool,QueryIODataTool,CalcAvailableAfterSaleTool 

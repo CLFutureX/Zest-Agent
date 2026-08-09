@@ -392,6 +392,15 @@ class EventService:
 
     async def respond_to_confirmation(self, request: ConfirmationResponseRequest):
         if request.accept:
+            # memory_review 审核回执：先发 ObservationEvent，再 run()
+            payload = getattr(request, "payload", None)
+            if payload and isinstance(payload, dict) and payload.get("tool_name") == "memory_review":
+                if not self._conversation:
+                    raise ValueError("inactive_service")
+                loop = asyncio.get_running_loop()
+                await loop.run_in_executor(
+                    None, self._conversation.respond_to_memory_review, payload
+                )
             try:
                 await self.run()
             except ValueError as e:

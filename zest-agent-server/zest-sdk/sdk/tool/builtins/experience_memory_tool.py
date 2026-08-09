@@ -71,6 +71,10 @@ class ExperienceMemoryAction(Action):
         "and explain the reason for not using the tool in choice_reason.",
     )
 
+    experience_id: Optional[str] = Field(
+        default=None,
+        description="经验 id。携带时走更新路径（覆盖该经验 solution/execute_trace）；不携带时走新增路径（检索相似，若需审核则返回 needs_review observation）。"
+    )
     domain_type: Optional[str] = Field(
         default=None,
         description="Applicable domain type of the question and solution (e.g., 'Customer Service', 'Technical Support'). "
@@ -113,6 +117,15 @@ class ExperienceMemoryObservation(Observation):
         description="Unique ID of the recorded experience (auto-generated if successful), format: user_id-timestamp-4 random digits. "
         "已记录经验的唯一标识ID（成功时自动生成），格式：user_id-时间戳-4位随机数。",
     )
+    needs_review: bool = Field(
+        default=False,
+        description="是否需要用户审核。True 时 similar_experiences 携带相似经验列表，LLM 应调用 memory_review 工具触发审核流程。"
+    )
+    similar_experiences: List[dict] = Field(
+        default_factory=list,
+        description="相似经验列表（needs_review=True 时填充），每项含 id/question/solution/trace_summary/feedback_type。"
+    )
+
 
     @property
     def visualize(self) -> Text:
@@ -195,6 +208,56 @@ class ExperienceMemoryExecutor(ToolExecutor):
         user_id_part = user_id if user_id else "unknown_user"
         return f"{user_id_part}-{timestamp}-{random_suffix}"
 
+    def _update_existing(self, action, context):
+        """更新路径：携带 experience_id 时，直接覆盖该经验的 solution。"""
+        if not context or not context.memory_manager:
+            return ExperienceMemoryObservation(
+                success=False, error_message="context 或 memory_manager 未初始化，无法更新。"
+            )
+        store = context.memory_manager.experience_store
+        if store is None:
+            return ExperienceMemoryObservation(
+                success=False, error_message="experience_store 未初始化，无法更新。"
+            )
+        try:
+            ok = store.update_experience(action.experience_id, solution=action.solution)
+            return ExperienceMemoryObservation(
+                success=bool(ok), experience_id=action.experience_id,
+                error_message=None if ok else "update_experience 返回 False"
+            )
+        except Exception as e:
+            return ExperienceMemoryObservation(
+                success=False, error_message=f"更新经验失败：{e}"
+            )
+
+    def _search_similar(self, action, context):
+        """检索相似经验，返回 [(ExperienceMemory, doc_id), ...]。"""
+        if not context or not context.memory_manager:
+            return []
+        try:
+            exps, ids = context.memory_manager._search_experience_memory(
+                context.user_id,
+                query=action.question,
+                domain_type=action.domain_type,
+                threshold=0.7,
+            )
+            return list(zip(exps, ids))
+        except Exception:
+            return []
+
+    def _needs_review(self, action, similar) -> bool:
+        """判定是否需要审核：optimization 反馈 + 轨迹部分一致（trace_overlap）。"""
+        if action.feedback_type != "optimization":
+            return False
+        new_tools = [t.tool_name for t in action.execute_trace]
+        for exp, _id in similar:
+            old_tools = [t.tool_name for t in exp.execute_trace]
+            trace_equal = (old_tools == new_tools)
+            trace_overlap = bool(set(old_tools) & set(new_tools)) and not trace_equal
+            if trace_overlap:
+                return True
+        return False
+
     def __call__(
         self,
         action: ExperienceMemoryAction,
@@ -222,32 +285,47 @@ class ExperienceMemoryExecutor(ToolExecutor):
 
             current_time = datetime.now()
             user_id = context.user_id if context else None
-            # 2. 生成结构化经验数据（完整匹配Prompt的ExperienceMemory字段）
+
+            # 路径 1：携带 experience_id → 走更新路径（覆盖 solution/execute_trace）
+            if action.experience_id:
+                return self._update_existing(action, context)
+
+            # 路径 2：不带 id → 检索相似，判定是否需审核
+            similar = self._search_similar(action, context)
+            if similar and self._needs_review(action, similar):
+                return ExperienceMemoryObservation(
+                    success=False,
+                    needs_review=True,
+                    similar_experiences=[
+                        {
+                            "id": sid,
+                            "question": exp.question,
+                            "solution": exp.solution,
+                            "trace_summary": [t.tool_name for t in exp.execute_trace],
+                            "feedback_type": exp.feedback_type,
+                        }
+                        for exp, sid in similar
+                    ],
+                    error_message="检测到相似经验且轨迹部分一致，需用户审核是否合并。请调用 memory_review 工具触发审核流程。"
+                )
+
+            # 路径 3：不需审核 → 走原新增逻辑（发事件 + 异步 build_experience）
             experience_id = self._generate_experience_id(user_id=user_id)
-            # 格式化execute_trace为字典列表，便于存储
-            
             experience_memory = ExperienceMemory(
                 id=experience_id,
-                user_id=user_id, # type: ignore
+                user_id=user_id,
                 question=action.question,
                 solution=action.solution,
                 execute_trace=action.execute_trace,
                 domain_type=action.domain_type,
                 feedback_type=action.feedback_type,
                 created_at=current_time,
-                 )
+            )
             if context:
                 context.event_center.publish(
                     event=experience_memory,
                     conversation_id=str(context.conversation_id), agent_id=str(context.agent_id))
-            
 
-            # # 3. 持久化到本地文件（可扩展至ES/MinIO，符合工具注释说明）
-            # file_path = self.storage_path / f"{experience_id}.json"
-            # with open(file_path, "w", encoding="utf-8") as f:
-            #     json.dump(experience_data, f, ensure_ascii=False, indent=2)
-
-            # 4. 返回成功结果（包含经验ID，符合Prompt要求）
             return ExperienceMemoryObservation(
                 success=True, experience_id=experience_id
             )
