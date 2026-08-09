@@ -147,9 +147,9 @@ The experience summary task shall be executed immediately if and only if the use
     Examples:
     
     Original User Question	Generalized Question (Template)
-    "我的订单FO001为什么无法发起售后"	"订单 {order_id} 无法发起售后"
-    "帮我查一下订单FO002的物流状态"	"查询订单 {order_id} 的物流状态"
-    "用户张三反馈登录失败，错误码401"	"用户 {user_name} 反馈登录失败，错误码 {error_code}"
+    "我的订单FO001为什么无法发起售后"	"订单 无法发起售后"
+    "帮我查一下订单FO002的物流状态"	"查询订单的物流状态"
+    "用户张三反馈登录失败，错误码401"	"用户反馈登录失败，错误码 {error_code}"
     "为什么产品A的库存显示为0"	"产品 {product_id} 库存显示为0的原因查询"
     If the question does not contain replaceable entities, keep the original summary as-is.
 - execute_trace: It is a list type, and each element is an ExecutionTrace object. It is necessary to completely restore the execution process of the solution, including all tool calls and corresponding thinking processes. The specific requirements are as follows:

@@ -1,25 +1,25 @@
 """
-任务管理路由
-提供任务创建、查询、更新、列表等API
+会话路由
+- 统一前缀 /api/v1/conversations
+- 创建 / 查询 / 删除 / 用户列表 / 确认响应
 """
+from __future__ import annotations
+
 import logging
 
 from common.models.model import ConfirmationResponseRequest
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.api.dependencies import get_app_conversation_service, get_scheduler
 from app.core.models import ConversationResponse, CreateConversationRequest, TaskInfo
-from app.api.dependencies import (
-    get_app_conversation_service, 
-    get_scheduler,
-)
-from app.core.services.app_conversation_service import AppConversationService 
+from app.core.services.app_conversation_service import AppConversationService
 from app.core.services.scheduler import Scheduler
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/v1/conversation", tags=["conversation"])
+router = APIRouter(prefix="/api/v1/conversations", tags=["conversation"])
 
 
-@router.post("/conversations", response_model=ConversationResponse)
+@router.post("", response_model=ConversationResponse)
 async def create_conversation(
     request: CreateConversationRequest,
     app_conversation_service: AppConversationService = Depends(get_app_conversation_service),
@@ -30,16 +30,14 @@ async def create_conversation(
         conversation_info = await app_conversation_service.create_app_conversation(request)
         task: TaskInfo = await scheduler.schedule(conversation_info)
         resp = await app_conversation_service.get_app_compose_conversation(conversation_info.id)
-
         if resp is None:
             raise HTTPException(status_code=404, detail=f"conversation {conversation_info.id} not found")
-
-        logger.info(f"create_conversation resp: {resp.model_dump()}")
+        logger.info("create_conversation resp: %s", resp.model_dump())
         return resp
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"create_conversation error: {str(e)}")
+        logger.error("create_conversation error: %s", str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -49,20 +47,18 @@ async def get_app_conversation(
     scheduler: Scheduler = Depends(get_scheduler),
     app_conversation_service: AppConversationService = Depends(get_app_conversation_service),
 ):
-    """获取会话详情"""
+    """获取会话详情（若无 task 则调度一次）"""
     conversation_info = await app_conversation_service.get_app_conversation(id)
     if conversation_info is None:
         raise HTTPException(status_code=404, detail=f"conversation {id} not found")
-    task: TaskInfo = await scheduler.schedule(conversation_info)
-    resp = await app_conversation_service.get_app_compose_conversation(conversation_info.id) 
-
+    await scheduler.schedule(conversation_info)
+    resp = await app_conversation_service.get_app_compose_conversation(conversation_info.id)
     if resp is None:
         raise HTTPException(status_code=501, detail=f"conversation {conversation_info.id} resume error")
-
     return resp
 
 
-@router.get("/users/{user_id}/conversations")
+@router.get("/users/{user_id}")
 async def list_user_app_conversations(
     user_id: str,
     limit: int = 50,
@@ -75,7 +71,6 @@ async def list_user_app_conversations(
         limit=limit,
         offset=offset,
     )
-
     return {
         "conversation": conversations,
         "total": len(conversations),
@@ -91,19 +86,21 @@ async def delete_app_conversation(
 ):
     """删除会话"""
     success = await app_conversation_service.delete_app_conversation(id)
-
     if not success:
-        raise HTTPException(status_code=504, detail=f"conversation {id} not found")
-
+        raise HTTPException(status_code=404, detail=f"conversation {id} not found")
     return {"status": "deleted", "id": id}
 
+
 @router.post("/{id}/respond_to_confirmation")
-async def response_to_confirm(id: str,
+async def response_to_confirm(
+    id: str,
     request: ConfirmationResponseRequest,
     scheduler: Scheduler = Depends(get_scheduler),
-    app_conversation_service: AppConversationService = Depends(get_app_conversation_service)):
-    
+    app_conversation_service: AppConversationService = Depends(get_app_conversation_service),
+):
+    """对 agent 确认请求给出用户响应"""
     conversation_info = await app_conversation_service.get_app_conversation(id)
     if conversation_info is None:
         raise HTTPException(status_code=404, detail=f"conversation {id} not found")
-    task: TaskInfo = await scheduler.schedule_confirm(conversation_info,request)
+    await scheduler.schedule_confirm(conversation_info, request)
+    return {"status": "ok", "id": id}

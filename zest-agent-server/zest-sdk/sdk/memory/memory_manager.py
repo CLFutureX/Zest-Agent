@@ -18,7 +18,7 @@ from typing import Any, ClassVar
 import jieba
 from pydantic import BaseModel, Field, model_validator
 
-from common.storage.memory.base import BaseMemoryEvent, ExperienceMemory 
+from common.storage.memory.base import BaseMemoryEvent, ExecutionTrace, ExperienceMemory
 from common.storage.memory.memory_store_factory import (
     create_base_memory_store,
     create_experience_memory_store,
@@ -43,7 +43,7 @@ class MemoryManager(BaseModel):
     DEFAULT_K: ClassVar[int] = 5
     DEFAULT_THRESHOLD: ClassVar[float] = 0.55
     DEFAULT_NUM_CANDIDATES: ClassVar[int] = 100
-    VALID_FEEDBACK_TYPES: ClassVar[set[str]] = {"positive", "negative"}
+    VALID_FEEDBACK_TYPES: ClassVar[set[str]] = {"positive", "negative", "optimization"}
 
     # 存储层
     base_store: MemoryStore | None = Field(default=None)
@@ -195,11 +195,16 @@ class MemoryManager(BaseModel):
         return self.base_store.delete_entry(user_id, category, entry_id)
 
     def build_experience(self, experience: ExperienceMemory) -> str:
-        """保存经验记忆（开关控制）"""
-        # if not self.enable_experience_memory:
-        #     logger.warning("经验记忆已关闭，无法保存")
-        #     return ""
+        """保存经验记忆：按相似度+轨迹一致性+反馈类型决策。
 
+        决策矩阵（检索阈值 0.7）：
+        - 无相似经验 -> new
+        - 轨迹完全一致 + 反馈相同 -> skip
+        - 轨迹完全一致 + 反馈不同 -> update feedback_type
+        - 轨迹部分一致 + positive -> update: 合并 execute_trace
+        - 轨迹部分一致 + optimization -> review 队列（待人工审核）
+        - 轨迹完全不同 -> new
+        """
         if not all([
             experience.user_id,
             experience.question,
@@ -216,20 +221,56 @@ class MemoryManager(BaseModel):
             experience.user_id,
             query=experience.question,
             domain_type=experience.domain_type,
-            threshold=0.8,
+            threshold=0.7,
         )
 
-        if existing_ids:
-            new_tools = [t.tool_name for t in experience.execute_trace]
-            for idx, exp in enumerate(existing_experiences):
-                old_tools = [t.tool_name for t in exp.execute_trace]
-                if old_tools == new_tools:
-                    logger.info(f"轨迹一致，跳过保存")
-                    return existing_ids[idx]
+        new_tools = [t.tool_name for t in experience.execute_trace]
+
+        for idx, exp in enumerate(existing_experiences):
+            old_tools = [t.tool_name for t in exp.execute_trace]
+            trace_equal = (old_tools == new_tools)
+            trace_overlap = bool(set(old_tools) & set(new_tools)) and not trace_equal
+
+            if trace_equal and exp.feedback_type == experience.feedback_type:
+                logger.info(f"轨迹一致且反馈相同，跳过保存：{existing_ids[idx]}")
+                return existing_ids[idx]
+
+            if trace_equal and exp.feedback_type != experience.feedback_type:
+                self.experience_store.update_experience(
+                    existing_ids[idx], feedback_type=experience.feedback_type,
+                )
+                logger.info(f"轨迹一致但反馈不同，更新 feedback_type：{existing_ids[idx]}")
+                return existing_ids[idx]
+
+            if trace_overlap:
+                if experience.feedback_type == "optimization":
+                    logger.warning(
+                        f"optimization 反馈进入待审核队列（暂未持久化）：question={experience.question}"
+                    )
+                    return ""
+
+                merged_trace = self._merge_execute_trace(exp.execute_trace, experience.execute_trace)
+                self.experience_store.update_experience(
+                    existing_ids[idx], execute_trace=merged_trace,
+                )
+                logger.info(f"轨迹部分一致，合并 execute_trace：{existing_ids[idx]}")
+                return existing_ids[idx]
 
         doc_id = self.experience_store.save_experience(experience)
         logger.info(f"经验保存成功：{doc_id}")
         return doc_id
+
+    def _merge_execute_trace(
+        self, old: list[ExecutionTrace], new: list[ExecutionTrace]
+    ) -> list[ExecutionTrace]:
+        """合并两条执行轨迹：以 old 为基底，追加 new 中未出现的工具节点，保序去重。"""
+        seen = {t.tool_name for t in old}
+        merged = list(old)
+        for t in new:
+            if t.tool_name not in seen:
+                merged.append(t)
+                seen.add(t.tool_name)
+        return merged
 
     def update_experience(
         self, doc_id: str, ref_count: int, solution: str | None = None, **kwargs

@@ -119,9 +119,8 @@ class TaskInfo(BaseModel):
         json_schema_extra = {
             "example": {
                 "task_id": "a1b2c3d4_e5f6g7h8",
-                "session_id": "a1b2c3d4",
+                "conversation_id": "a1b2c3d4",
                 "user_id": "user123",
-                "title": "数据分析任务",
                 "status": "pending",
                 "metadata": {},
             }
@@ -686,74 +685,6 @@ class ConversationCreatePayload(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    username: str = Field(..., min_length=2, max_length=64, description='username')
-    email: str = Field(..., description='email')
-    password: str = Field(..., min_length=6, description='password')
-
-
-class RegisterResponse(BaseModel):
-    user: 'AuthSessionUser'
-
-    username: str = Field(..., min_length=2, max_length=64, description='username')
-    email: str = Field(..., description='email')
-    password: str = Field(..., min_length=6, description='password')
-
-
-class RegisterResponse(BaseModel):
-    user: 'AuthSessionUser'
-
-    username: str = Field(..., min_length=2, max_length=64, description='username')
-    email: str = Field(..., description='email')
-    password: str = Field(..., min_length=6, description='password')
-
-
-class RegisterResponse(BaseModel):
-    user: 'AuthSessionUser'
-
-    enable_experience_memory: bool = Field(default=True, description="Whether to enable experience memory.")
-    confirmation_policy: ConfirmationPolicyPayload = Field(default=ConfirmationPolicyPayload())
-
-
-class RegisterRequest(BaseModel):
-    username: str = Field(..., min_length=2, max_length=64, description='username')
-    email: str = Field(..., description='email')
-    password: str = Field(..., min_length=6, description='password')
-
-
-class RegisterResponse(BaseModel):
-    user: 'AuthSessionUser'
-
-    username: str = Field(..., min_length=2, max_length=64, description='username')
-    email: str = Field(..., description='email')
-    password: str = Field(..., min_length=6, description='password')
-
-
-class RegisterResponse(BaseModel):
-    user: 'AuthSessionUser'
-
-    username: str = Field(..., min_length=2, max_length=64, description='username')
-    email: str = Field(..., description='email')
-    password: str = Field(..., min_length=6, description='password')
-
-
-class RegisterResponse(BaseModel):
-    user: 'AuthSessionUser'
-
-    email: str = Field(..., description='email')
-    password: str = Field(..., min_length=6, description='password')
-
-
-class RegisterResponse(BaseModel):
-    user: 'AuthSessionUser'
-
-    username: str = Field(..., min_length=2, max_length=64, description='username')
-    email: str = Field(..., description='email')
-    password: str = Field(..., min_length=6, description='password')
-
-
-class RegisterResponse(BaseModel):
-    user: 'AuthSessionUser'
-
     username: str = Field(..., min_length=2, max_length=64, description='username')
     email: str = Field(..., description='email')
     password: str = Field(..., min_length=6, description='password')

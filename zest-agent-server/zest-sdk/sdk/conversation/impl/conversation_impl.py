@@ -156,7 +156,7 @@ class LocalConversation(BaseConversation):
         # Store plugin specs for lazy loading (no IO in constructor)
         # Plugins will be loaded on first run() or send_message() call
         self._plugin_specs = plugins
-        self._agent_spec = agent_spec
+        self.agent_spec = agent_spec
         self._resolved_plugins = None
         self._plugins_loaded = False
         self._pending_hook_config = hook_config  # Will be combined with plugin hooks
@@ -318,12 +318,15 @@ class LocalConversation(BaseConversation):
         from sdk.agent.agent_runner import AgentRunner
         if self._main_agent_runner is None:
             self._main_agent_runner = AgentRunner(
-                agent_spec= agent_spec,
+                agent_spec=self.agent_spec,
                 context=self._runner_context,
                 max_iterations=self.max_iteration_per_run,
                 stuck_detector=self._stuck_detector,
                 hook_processor=self._hook_processor,
             )
+            # Sync merged agent spec to ConversationState/AgentState (post AgentRunner construction)
+            with self._state:
+                self._state.update_agent_config(self.agent, agent_id=None)
 
     @property
     def agent(self)-> AgentBase:
@@ -427,7 +430,7 @@ class LocalConversation(BaseConversation):
 
             # Start with agent's existing context and MCP config
             merged_context = self.agent_spec.agent_context_spec
-            merged_mcp = dict(self.agent_spec.mcp_config) if self.agent.mcp_config else {}
+            merged_mcp = dict(self.agent_spec.mcp_config)
 
             for spec in self._plugin_specs:
                 # Fetch plugin and get resolved commit SHA
@@ -464,12 +467,7 @@ class LocalConversation(BaseConversation):
                 }
             )
 
-            # Update the agent config in ConversationState and AgentState so API responses reflect loaded plugins
-            # 使用 update_agent_config() 更新 AgentState 中的配置
-            with self._state:
-                self._state.update_agent_config(
-                    self.agent, agent_id=None
-                )  # None表示更新MainAgent
+            # AgentSpec 已合并插件 skills/mcp；AgentRunner 构造后再同步到 AgentState
 
             logger.info(f"Loaded {len(self._plugin_specs)} plugin(s) via Conversation")
 

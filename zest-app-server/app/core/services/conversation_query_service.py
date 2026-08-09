@@ -1,4 +1,10 @@
-from atexit import register
+"""
+会话查询服务
+负责从 zest-service 拉取会话运行时状态/事件/记忆。
+"""
+from __future__ import annotations
+
+from typing import Optional
 
 from common.query.conversation_read_facade import ConversationReadFacade
 from common.query.query_models import (
@@ -6,125 +12,53 @@ from common.query.query_models import (
     ConversationMemoryRecord,
     ConversationStateView,
 )
-from app.core.services.task_service import TaskService
-from app.core.services.scheduler import Dispatcher
-from app.core.registry.base import AgentRegistryServer
 
+from app.core.services.dispatcher import Dispatcher
+from app.core.services.task_service import TaskService
 
 
 class ConversationQueryService:
-
     def __init__(
         self,
         read_facade: ConversationReadFacade,
-        task_service:TaskService,
-        dispatcher: Dispatcher, 
+        task_service: TaskService,
+        dispatcher: Dispatcher,
     ) -> None:
         self._read_facade = read_facade
         self._dispatcher = dispatcher
         self._task_service = task_service
+
     def get_events(
-
         self,
-
         conversation_id: str,
-
-        cursor: str | None = None,
-
+        cursor: Optional[str] = None,
         limit: int = 20,
-
-        user_id: str | None = None,
-
+        user_id: Optional[str] = None,
     ) -> ConversationEventPage:
-
         return self._read_facade.get_events(
-
             conversation_id,
-
             cursor=cursor,
-
             limit=limit,
-
             user_id=user_id,
-
         )
 
-
-
-    def get_base_memories(
-
-        self,
-
-        user_id: str | None = None,
-
-    ) -> list[ConversationMemoryRecord]:
-
+    def get_base_memories(self, user_id: Optional[str] = None) -> list[ConversationMemoryRecord]:
         if not user_id:
-
             return []
-
         return self._read_facade.get_base_memories(user_id=user_id)
 
-
-
-    def get_experience_memories(
-
-        self,
-
-        user_id: str | None = None,
-
-    ) -> list[ConversationMemoryRecord]:
-
+    def get_experience_memories(self, user_id: Optional[str] = None) -> list[ConversationMemoryRecord]:
         if not user_id:
-
             return []
-
-        return self._read_facade.get_experience_memories(user_id=user_id)
- 
-         
-    def get_base_memories(
-
-        self,
-
-        user_id: str | None = None,
-
-    ) -> list[ConversationMemoryRecord]:
-
-        if not user_id:
-
-            return []
-
-        return self._read_facade.get_base_memories(user_id=user_id)
-
-
-
-    def get_experience_memories(
-
-        self,
-
-        user_id: str | None = None,
-
-    ) -> list[ConversationMemoryRecord]:
-
-        if not user_id:
-
-            return []
-
         return self._read_facade.get_experience_memories(user_id=user_id)
 
-    async def get_state_view(
-        self,
-        conversation_id: str,
-    ) -> ConversationStateView | None:
+    async def get_state_view(self, conversation_id: str) -> Optional[ConversationStateView]:
         """HTTP-call zest-service to get conversation state view.
         Resolves AgentServerInfo from the latest task for this conversation.
         """
-      
-
         task = await self._task_service.get_latest_task_by_conversation(conversation_id)
         if not task or not task.agent_server_id:
             return None
- 
 
         raw = await self._dispatcher.get_conversation_state(conversation_id, task.agent_server_id)
         if not raw:
