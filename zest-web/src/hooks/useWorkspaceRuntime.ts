@@ -20,6 +20,7 @@ import { useEventStore } from '../stores/useEventStore'
 import type {
   ConversationResponse,
   ConversationSplitView,
+  MemoryReviewPayload,
   TodoItem,
   UserLlmConfigSummary,
 } from '../types/workspace'
@@ -358,7 +359,7 @@ export function useWorkspaceRuntime() {
     }
   }
 
-  const handleRespondToConfirmation = async (input: { accept: boolean; reason?: string }) => {
+  const handleRespondToConfirmation = async (input: { accept: boolean; reason?: string; payload?: MemoryReviewPayload }) => {
     const conversationId = conversationRecord?.conversation_id ?? conversation?.conversation_id
     if (!conversationId) {
       setErrorMessage('当前没有可操作的会话。')

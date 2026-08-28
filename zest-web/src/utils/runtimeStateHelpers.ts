@@ -187,6 +187,7 @@ export function extractConfirmationState(event: RuntimeEvent): ConfirmationState
       ?? asString(action?.message)
       ?? asString(action?.kind)
       ?? null,
+    actionArgs: action ?? null,
   }
 }
 

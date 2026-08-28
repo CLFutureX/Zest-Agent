@@ -242,7 +242,7 @@ class Agent(AgentBase):
         """
         # Check for pending actions (implicit confirmation)
         # and execute them before sampling new actions.
-        # 从上下文检索未完成的任务，进行执行
+        # 从上下文检索未完成的任务，进行执行-对应被confirm的action进行处理。
         pending_actions = RunnerContext.get_unmatched_actions(context.events)
         if pending_actions:
             logger.info(
@@ -435,16 +435,18 @@ class Agent(AgentBase):
 
         # Grab the confirmation policy from the context and pass in the risks.
         if any(context.confirmation_policy.should_confirm(risk) for risk in risks):
-
             context.agent_state.set_execution_status(
                 ExecutionStatus.WAITING_FOR_CONFIRMATION
             )
             return True
-        context.agent_state.set_execution_status(
+
+        # memory_review tool 总是需要用户确认（审核中转工具，非 LLM 自主决策）
+        if any(getattr(ae, "tool_name", None) == "memory_review" for ae in action_events):
+            context.agent_state.set_execution_status(
                 ExecutionStatus.WAITING_FOR_CONFIRMATION
             )
-        return True
-        
+            return True
+
         return False
 
     def _extract_security_risk(

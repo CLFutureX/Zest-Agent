@@ -57,10 +57,7 @@ async def api_lifespan(api: FastAPI) -> AsyncIterator[None]:
 
     async def start_registry_client():
         nonlocal registry_client, registry_task
-        if not config.registry_enabled:
-            logger.info("Agent registry is disabled")
-            return
-
+      
         host = "127.0.0.1"  if config.agent_server_host == '0.0.0.0' else  config.agent_server_host
         server_info_provider = DefaultServerInfoProvider(
             server_id=config.resolved_agent_server_id,

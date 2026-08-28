@@ -1634,6 +1634,10 @@ class ESMemoryStore(MemoryStore):
 
             update_data["ref_count"] = kwargs["ref_count"]
 
+        if "feedback_type" in kwargs and kwargs["feedback_type"] is not None:
+
+            update_data["feedback_type"] = kwargs["feedback_type"]
+
         self._es_client.update(index=self._collection_name, id=doc_id, body={"doc": update_data})
 
         logger.info(f"经验文档 {doc_id} 更新成功")

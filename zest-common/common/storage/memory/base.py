@@ -31,6 +31,22 @@ class ExperienceMemory(BaseModel):
 
     
 
+
+
+class ReviewItem(BaseModel):
+    """记忆类待审核项（经验/base记忆）。前端按 memory_type 渲染不同弹窗。"""
+    review_id: str = Field(default_factory=lambda: f"rev_{uuid.uuid4().hex[:8]}")
+    memory_type: str = Field(description="experience | base_memory")
+    target_id: str = Field(description="experience_id 或 base_memory entry_id")
+    reason: str = Field(default="")
+    created_at: datetime = Field(default_factory=datetime.now)
+    old_content: str = Field(default="")
+    new_content: str = Field(default="")
+    question: str | None = Field(default=None)
+    old_trace_summary: list[str] = Field(default_factory=list)
+    new_trace_summary: list[str] = Field(default_factory=list)
+    feedback_type: str | None = Field(default=None)
+
 class MemoryCategory(str, Enum):
 
     """基础记忆的四种分类。"""

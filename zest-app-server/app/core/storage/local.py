@@ -1,298 +1,364 @@
 """
-LocalFile存储实现
-使用本地JSON文件存储数据，适用于单机开发环境
+LocalFile 运行时存储实现
+- 会话 / 任务 / AgentServer / 用户（本地文件）
+- 数据目录由 LocalFileBackend 启动时传入，子目录名固定：conversations / tasks / servers / users
+- 序列化统一用 PydanticJsonSerializer，cipher context 与 MySQL 行为一致
 """
-import json
+from __future__ import annotations
+
 import asyncio
+import json
+import logging
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
-from datetime import datetime
 
-from app.core.storage.base import AppConversationStorage, TaskStorage, AgentServerStorage, UserStorage
-from app.core.models import AppConversationInfo, TaskInfo, AgentServerInfo, ServerStatus, AuthUser
+from app.core.models import (
+    AgentServerInfo,
+    AppConversationInfo,
+    AuthUser,
+    ServerStatus,
+    TaskInfo,
+    TaskStatus,
+)
+from app.core.storage.base import (
+    AgentServerStorage,
+    AppConversationStorage,
+    TaskStorage,
+    UserStorage,
+)
+from app.core.storage.serializer import PydanticJsonSerializer
+
+logger = logging.getLogger(__name__)
 
 
+# ==============================
+# 会话
+# ==============================
 class LocalFileAppConversationStorage(AppConversationStorage):
-    """本地文件会话存储"""
-    
-    def __init__(self, data_dir: str = "./data/conversations"):
+    def __init__(self, data_dir: Path) -> None:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self._lock = asyncio.Lock()
-    
+        self._serializer = PydanticJsonSerializer()
+
     def _get_file_path(self, id: str) -> Path:
-        """获取会话文件路径"""
-        return self.data_dir / f"{id}.json"
-    
+        safe = str(id).replace("/", "_").replace("\\", "_")
+        return self.data_dir / f"{safe}.json"
+
+    async def ensure_indexes(self) -> None:
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+
     async def create_app_conversation(self, conversation: AppConversationInfo) -> bool:
-        """创建会话"""
         async with self._lock:
-            file_path = self._get_file_path(conversation.id)
-            if file_path.exists():
+            path = self._get_file_path(conversation.id)
+            if path.exists():
                 return False
-            file_path.write_text(json.dumps(conversation.dict(), default=str))
+            path.write_text(self._serializer.to_store(conversation), encoding="utf-8")
             return True
-    
+
     async def get_app_conversation(self, id: str) -> Optional[AppConversationInfo]:
-        """获取会话"""
-        file_path = self._get_file_path(id)
-        if not file_path.exists():
+        path = self._get_file_path(id)
+        if not path.exists():
             return None
-        data = json.loads(file_path.read_text())
-        return AppConversationInfo(**data)
-    
+        return self._serializer.from_store(path.read_text(encoding="utf-8"), AppConversationInfo)
+
     async def update_app_conversation(self, id: str, updates: dict) -> bool:
-        """更新会话"""
         async with self._lock:
             conversation = await self.get_app_conversation(id)
             if not conversation:
                 return False
             for key, value in updates.items():
-                setattr(conversation, key, value)
+                if hasattr(conversation, key):
+                    setattr(conversation, key, value)
             conversation.updated_at = datetime.utcnow()
-            file_path = self._get_file_path(id)
-            file_path.write_text(json.dumps(conversation.dict(), default=str))
+            path = self._get_file_path(id)
+            path.write_text(self._serializer.to_store(conversation), encoding="utf-8")
             return True
-    
-    async def delete_app_conversation(self, id: str) -> bool:
-        """删除会话"""
+
+    async def delete_app_conversation(self, session_id: str) -> bool:
         async with self._lock:
-            file_path = self._get_file_path(id)
-            if not file_path.exists():
+            path = self._get_file_path(session_id)
+            if not path.exists():
                 return False
-            file_path.unlink()
+            path.unlink()
             return True
-    
+
     async def list_app_conversations_by_user(
         self,
-        user_id: str, 
+        user_id: str,
+        status: Optional[str] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[AppConversationInfo]:
-        """查询用户会话列表"""
-        conversations = []
-        for file_path in self.data_dir.glob("*.json"):
-            data = json.loads(file_path.read_text())
-            conversation = AppConversationInfo(**data)
-            if conversation.user_id == user_id:
-                conversations.append(conversation)
-        
-        # 按创建时间倒序排序
+        conversations: List[AppConversationInfo] = []
+        for path in self.data_dir.glob("*.json"):
+            try:
+                conv = self._serializer.from_store(path.read_text(encoding="utf-8"), AppConversationInfo)
+            except Exception:
+                logger.warning("Failed to parse %s", path, exc_info=True)
+                continue
+            if conv is None or conv.user_id != user_id:
+                continue
+            conversations.append(conv)
         conversations.sort(key=lambda s: s.created_at, reverse=True)
-        return conversations[offset:offset+limit]
+        return conversations[offset:offset + limit]
 
 
+# ==============================
+# 任务
+# ==============================
 class LocalFileTaskStorage(TaskStorage):
-    """本地文件任务存储"""
-    
-    def __init__(self, data_dir: str = "./data/tasks"):
+    def __init__(self, data_dir: Path) -> None:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self._lock = asyncio.Lock()
-    
+        self._serializer = PydanticJsonSerializer()
+
     def _get_file_path(self, task_id: str) -> Path:
-        """获取任务文件路径"""
-        return self.data_dir / f"{task_id}.json"
-    
+        safe = str(task_id).replace("/", "_").replace("\\", "_")
+        return self.data_dir / f"{safe}.json"
+
+    async def ensure_indexes(self) -> None:
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+
     async def save_task(self, task: TaskInfo) -> bool:
         async with self._lock:
-            file_path = self._get_file_path(task.task_id)
-             
-            file_path.write_text(json.dumps(task.dict(), default=str))
+            path = self._get_file_path(task.task_id)
+            path.write_text(self._serializer.to_store(task), encoding="utf-8")
             return True
-             
-                
+
     async def create_task(self, task: TaskInfo) -> bool:
-        """创建任务"""
         async with self._lock:
-            file_path = self._get_file_path(task.task_id)
-            if file_path.exists():
+            path = self._get_file_path(task.task_id)
+            if path.exists():
                 return False
-            file_path.write_text(json.dumps(task.dict(), default=str))
+            path.write_text(self._serializer.to_store(task), encoding="utf-8")
             return True
-    
+
     async def get_task(self, task_id: str) -> Optional[TaskInfo]:
-        """获取任务"""
-        file_path = self._get_file_path(task_id)
-        if not file_path.exists():
+        path = self._get_file_path(task_id)
+        if not path.exists():
             return None
-        data = json.loads(file_path.read_text())
-        return TaskInfo(**data)
-    
+        return self._serializer.from_store(path.read_text(encoding="utf-8"), TaskInfo)
+
     async def update_task(self, task_id: str, updates: dict) -> bool:
-        """更新任务"""
         async with self._lock:
             task = await self.get_task(task_id)
             if not task:
                 return False
             for key, value in updates.items():
-                setattr(task, key, value)
-            file_path = self._get_file_path(task_id)
-            file_path.write_text(json.dumps(task.dict(), default=str))
+                if hasattr(task, key):
+                    setattr(task, key, value)
+            task.updated_at = datetime.utcnow()
+            path = self._get_file_path(task_id)
+            path.write_text(self._serializer.to_store(task), encoding="utf-8")
             return True
-    
+
     async def delete_task(self, task_id: str) -> bool:
-        """删除任务"""
         async with self._lock:
-            file_path = self._get_file_path(task_id)
-            if not file_path.exists():
+            path = self._get_file_path(task_id)
+            if not path.exists():
                 return False
-            file_path.unlink()
+            path.unlink()
             return True
-    
+
     async def list_tasks_by_user(
         self,
         user_id: str,
         status: Optional[str] = None,
         limit: int = 50,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[TaskInfo]:
-        """查询用户任务列表"""
-        tasks = []
-        for file_path in self.data_dir.glob("*.json"):
-            data = json.loads(file_path.read_text())
-            task = TaskInfo(**data)
-            if task.user_id == user_id:
-                if not status or task.status.value == status:
-                    tasks.append(task)
-        
-        # 按创建时间倒序排序
+        tasks: List[TaskInfo] = []
+        for path in self.data_dir.glob("*.json"):
+            try:
+                task = self._serializer.from_store(path.read_text(encoding="utf-8"), TaskInfo)
+            except Exception:
+                logger.warning("Failed to parse %s", path, exc_info=True)
+                continue
+            if task is None or task.user_id != user_id:
+                continue
+            if status and task.status.value != status:
+                continue
+            tasks.append(task)
         tasks.sort(key=lambda t: t.created_at, reverse=True)
-        return tasks[offset:offset+limit]
-    
-    async def list_tasks_by_app_conversation(self, id: str) -> List[TaskInfo]:
+        return tasks[offset:offset + limit]
 
-        """查询会话任务列表"""
-
-        tasks = []
-
-        for file_path in self.data_dir.glob("*.json"):
-
-            data = json.loads(file_path.read_text())
-
-            task = TaskInfo(**data)
-
-            if task.conversation_id == id:
-
-                tasks.append(task)
-        
-        # 按创建时间倒序排序
+    async def list_tasks_by_app_conversation(self, session_id: str) -> List[TaskInfo]:
+        tasks: List[TaskInfo] = []
+        for path in self.data_dir.glob("*.json"):
+            try:
+                task = self._serializer.from_store(path.read_text(encoding="utf-8"), TaskInfo)
+            except Exception:
+                logger.warning("Failed to parse %s", path, exc_info=True)
+                continue
+            if task is None or task.conversation_id != session_id:
+                continue
+            tasks.append(task)
         tasks.sort(key=lambda t: t.created_at, reverse=True)
         return tasks
 
 
+# ==============================
+# AgentServer
+# ==============================
 class LocalFileAgentServerStorage(AgentServerStorage):
-    """本地文件AgentServer存储"""
-    
-    def __init__(self, data_dir: str = "./data/servers"):
+    def __init__(self, data_dir: Path) -> None:
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self._lock = asyncio.Lock()
-    
+        self._serializer = PydanticJsonSerializer()
+
     def _get_file_path(self, server_id: str) -> Path:
-        """获取服务文件路径"""
-        return self.data_dir / f"{server_id}.json"
-    
+        safe = str(server_id).replace("/", "_").replace("\\", "_")
+        return self.data_dir / f"{safe}.json"
+
+    async def ensure_indexes(self) -> None:
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+
     async def register_server(self, server: AgentServerInfo) -> bool:
-        """注册服务"""
         async with self._lock:
-            file_path = self._get_file_path(server.server_id)
-            if file_path.exists():
-                return False
-            file_path.write_text(json.dumps(server.dict(), default=str))
+            path = self._get_file_path(server.server_id)
+            path.write_text(self._serializer.to_store(server), encoding="utf-8")
             return True
-    
+
     async def deregister_server(self, server_id: str) -> bool:
-        """注销服务"""
         async with self._lock:
-            file_path = self._get_file_path(server_id)
-            if not file_path.exists():
+            path = self._get_file_path(server_id)
+            if not path.exists():
                 return False
-            file_path.unlink()
+            path.unlink()
             return True
-    
+
     async def get_server(self, server_id: str) -> Optional[AgentServerInfo]:
-        """获取服务"""
-        file_path = self._get_file_path(server_id)
-        if not file_path.exists():
+        path = self._get_file_path(server_id)
+        if not path.exists():
             return None
-        data = json.loads(file_path.read_text())
-        return AgentServerInfo(**data)
-    
+        return self._serializer.from_store(path.read_text(encoding="utf-8"), AgentServerInfo)
+
     async def update_server(self, server_id: str, updates: dict) -> bool:
-        """更新服务"""
         async with self._lock:
             server = await self.get_server(server_id)
             if not server:
                 return False
             for key, value in updates.items():
-                setattr(server, key, value)
+                if hasattr(server, key):
+                    setattr(server, key, value)
             server.last_heartbeat = datetime.utcnow()
-            file_path = self._get_file_path(server_id)
-            file_path.write_text(json.dumps(server.dict(), default=str))
+            path = self._get_file_path(server_id)
+            path.write_text(self._serializer.to_store(server), encoding="utf-8")
             return True
-    
+
     async def list_healthy_servers(self) -> List[AgentServerInfo]:
-        """获取健康服务列表"""
-        servers = []
-        for file_path in self.data_dir.glob("*.json"):
-            data = json.loads(file_path.read_text())
-            server = AgentServerInfo(**data)
-            if server.status == ServerStatus.HEALTHY:
-                servers.append(server)
-        
-        # 按注册时间排序
-        servers.sort(key=lambda s: s.registered_at)
-        return servers
-    
+        servers = await self.list_all_servers()
+        return [s for s in servers if s.status == ServerStatus.HEALTHY]
+
     async def list_all_servers(self) -> List[AgentServerInfo]:
-        """获取所有服务列表"""
-        servers = []
-        for file_path in self.data_dir.glob("*.json"):
-            data = json.loads(file_path.read_text())
-            server = AgentServerInfo(**data)
-            servers.append(server)
-        
-        # 按注册时间排序
+        servers: List[AgentServerInfo] = []
+        for path in self.data_dir.glob("*.json"):
+            try:
+                server = self._serializer.from_store(path.read_text(encoding="utf-8"), AgentServerInfo)
+            except Exception:
+                logger.warning("Failed to parse %s", path, exc_info=True)
+                continue
+            if server is not None:
+                servers.append(server)
         servers.sort(key=lambda s: s.registered_at)
         return servers
 
 
-class InMemoryUserStorage(UserStorage):
-    """内存用户存储（第一版，重启丢失；生产换 DB 实现）"""
+# ==============================
+# 用户（本地文件存储；运行时 storage_mode=local 时使用）
+# ==============================
+class LocalFileUserStorage(UserStorage):
+    """本地文件用户存储。
 
-    def __init__(self):
-        self._users_by_id: dict = {}
-        self._users_by_username: dict = {}
-        self._users_by_email: dict = {}
+    - 每个用户一个 <user_id>.json 文件，存于 data_dir。
+    - get_user_by_username / by_email 通过扫描目录实现，适合单机中小规模用户。
+    - 重启不丢失；并发写由单实例 asyncio.Lock 保护。
+    - 生产环境或大量用户请切换到 MysqlBackend。
+    """
+
+    _ALLOWED_UPDATE_FIELDS = {
+        "username", "email", "password_hash", "is_active", "updated_at",
+    }
+
+    def __init__(self, data_dir: Path) -> None:
+        self.data_dir = Path(data_dir)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
         self._lock = asyncio.Lock()
+        self._serializer = PydanticJsonSerializer()
+
+    def _get_file_path(self, user_id: str) -> Path:
+        safe = str(user_id).replace("/", "_").replace("\\", "_")
+        return self.data_dir / f"{safe}.json"
+
+    def _iter_users(self):
+        for path in self.data_dir.glob("*.json"):
+            try:
+                raw = path.read_text(encoding="utf-8")
+                user = self._serializer.from_store(raw, AuthUser)
+            except Exception:
+                logger.warning("Failed to parse %s", path, exc_info=True)
+                continue
+            if user is not None:
+                yield user
 
     async def ensure_indexes(self) -> None:
-        pass
+        self.data_dir.mkdir(parents=True, exist_ok=True)
 
-    async def create_user(self, user) -> bool:
+    async def create_user(self, user: AuthUser) -> bool:
         async with self._lock:
-            if user.user_id in self._users_by_id:
+            path = self._get_file_path(user.user_id)
+            if path.exists():
                 return False
-            self._users_by_id[user.user_id] = user
-            self._users_by_username[user.username] = user
-            if user.email:
-                self._users_by_email[user.email] = user
-        return True
+            # 用户名/邮箱唯一性：扫描已有文件
+            for existing in self._iter_users():
+                if existing.user_id == user.user_id:
+                    return False
+                if existing.username == user.username:
+                    return False
+                if user.email and existing.email == user.email:
+                    return False
+            path.write_text(self._serializer.to_store(user), encoding="utf-8")
+            return True
 
-    async def get_user_by_id(self, user_id: str):
-        return self._users_by_id.get(user_id)
+    async def get_user_by_id(self, user_id: str) -> Optional[AuthUser]:
+        path = self._get_file_path(user_id)
+        if not path.exists():
+            return None
+        return self._serializer.from_store(path.read_text(encoding="utf-8"), AuthUser)
 
-    async def get_user_by_username(self, username: str):
-        return self._users_by_username.get(username)
+    async def get_user_by_username(self, username: str) -> Optional[AuthUser]:
+        for user in self._iter_users():
+            if user.username == username:
+                return user
+        return None
 
-    async def get_user_by_email(self, email: str):
-        return self._users_by_email.get(email)
+    async def get_user_by_email(self, email: str) -> Optional[AuthUser]:
+        if not email:
+            return None
+        for user in self._iter_users():
+            if user.email == email:
+                return user
+        return None
 
     async def update_user(self, user_id: str, updates: dict) -> bool:
-        user = self._users_by_id.get(user_id)
-        if user is None:
+        filtered = {k: v for k, v in updates.items() if k in self._ALLOWED_UPDATE_FIELDS}
+        if not filtered:
             return False
-        for k, v in updates.items():
-            setattr(user, k, v)
-        return True
+        async with self._lock:
+            path = self._get_file_path(user_id)
+            if not path.exists():
+                return False
+            user = self._serializer.from_store(path.read_text(encoding="utf-8"), AuthUser)
+            if user is None:
+                return False
+            for k, v in filtered.items():
+                if hasattr(user, k):
+                    setattr(user, k, v)
+            path.write_text(self._serializer.to_store(user), encoding="utf-8")
+            return True
+
+ 

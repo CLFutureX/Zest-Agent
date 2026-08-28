@@ -292,9 +292,16 @@ export type ConversationStateView = {
   agent_id?: string | null
 }
 
+export type MemoryReviewPayload = {
+  tool_name: 'memory_review'
+  selected_id?: string
+  edited_content?: string
+}
+
 export type ConfirmationResponseInput = {
   accept: boolean
   reason?: string
+  payload?: MemoryReviewPayload
 }
 
 export type ConversationSplitView = {

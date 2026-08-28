@@ -163,3 +163,7 @@ class ConfirmationResponseRequest(BaseModel):
 
     accept: bool
     reason: str = "User rejected the action."
+    payload: dict | None = Field(
+        default=None,
+        description="用户审核回执 payload。memory_review 工具审核通过时携带 {tool_name, selected_id, edited_content}；后端检测到该 payload 后封装为 ObservationEvent 投递给 agent。",
+    )

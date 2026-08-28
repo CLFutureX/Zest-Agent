@@ -113,6 +113,7 @@ export async function respondToConfirmation(
       body: JSON.stringify({
         accept: input.accept,
         reason: input.reason ?? 'User rejected the action.',
+        ...(input.payload ? { payload: input.payload } : {}),
       }),
     },
   )

@@ -459,20 +459,29 @@ class AgentState(BaseModel):
         if data.get("llm"):
             from sdk.llm import LLM
 
-            llm = LLM.model_validate(data["llm"])
+            llm = (
+                LLM.model_validate_json(data["llm"])
+                if isinstance(data["llm"], str)
+                else LLM.model_validate(data["llm"])
+            )
 
         tools = None
         if data.get("tools"):
             from sdk.tool import Tool
 
             tools = [
-                Tool.model_validate(t) if isinstance(t, dict) else t
+                Tool.model_validate_json(t) if isinstance(t, str) else Tool.model_validate(t)
                 for t in data["tools"]
             ]
 
-        agent_context = None
-        if data.get("agent_context"): 
-            agent_context_spec = AgentContextSpec.model_validate(data["agent_context_spec"])
+        agent_context_spec = None
+        if data.get("agent_context_spec"):
+            spec_data = data["agent_context_spec"]
+            agent_context_spec = (
+                AgentContextSpec.model_validate_json(spec_data)
+                if isinstance(spec_data, str)
+                else AgentContextSpec.model_validate(spec_data)
+            )
 
         return cls(
             agent_id=data["agent_id"],
