@@ -165,6 +165,8 @@ class AgentProfileService:
         策略：限额取 settings；OSS 键为 skill-bundles/<uid>/<sid>/<version>.zip；
         version 取 zip 字节 sha256 前 8 位；source 携带 oss:// 标记供运行时物化。
         """ 
+        if self.oss_client is None:
+            raise ValueError("OSS 未配置或未启用，skill bundle 上传功能不可用")
         # 每用户配额
         existing_skills = await self.skill_storage.list_by_user(user_id)
         if len(existing_skills) >= self._skill_max_per_user:

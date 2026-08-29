@@ -15,6 +15,7 @@ import zipfile
 import pytest
 
 from app.core.models import SkillProfile
+from app.api.dependencies import get_agent_profile_service
 from app.core.services.skill_bundle_validator import (
     SkillBundleValidationError,
     validate_zip_bundle,
@@ -286,7 +287,7 @@ class TestOssCapabilitySwitch:
             memory_settings_storage=mem,
             oss_client=None,
         )
-        with pytest.raises(ValueError, match="oss"):
+        with pytest.raises(ValueError, match="OSS"):
             await svc.create_skill_bundle(user_id="u1", name="x", zip_bytes=good_bundle())
 
     @pytest.mark.asyncio
@@ -304,7 +305,7 @@ class TestOssCapabilitySwitch:
             oss_client=None,
         )
         # 手工塞一个 bundle 元数据（模拟配置丢失前上传的）
-        skill = SkillProfile(user_id="u1", name="s", content="", source="oss://k@v#h",
+        skill = SkillProfile(id="skill-x", user_id="u1", name="s", content="", source="oss://k@v#h",
                              bundle_type="zip", oss_key="skill-bundles/u1/s/v1.zip")
         await mem.create(skill)
         with pytest.raises(ValueError, match="OSS"):
@@ -315,47 +316,90 @@ class TestOssCapabilitySwitch:
     def test_is_oss_configured_reads_settings(self, monkeypatch):
         """is_oss_configured：开关 + 四项凭证齐全才为 True。"""
         from app.api import dependencies
-        from app.config import settings
+        from app.config.settings import settings
 
-        monkeypatch.setattr(settings, "oss_enable", False, raising=False)
-        assert dependencies.is_oss_configured() is False
+        full = {
+            "oss_enable": True,
+            "oss_access_key_id": "ak",
+            "oss_access_key_secret": "sk",
+            "oss_endpoint": "http://oss",
+            "oss_bucket_name": "bkt",
+        }
+        saved = {k: getattr(settings, k) for k in full}
+        try:
+            # 开关关
+            for k, v in full.items():
+                setattr(settings, k, v)
+            setattr(settings, "oss_enable", False)
+            assert dependencies.is_oss_configured() is False
+            # 开关开但凭证缺
+            setattr(settings, "oss_enable", True)
+            setattr(settings, "oss_access_key_id", "")
+            assert dependencies.is_oss_configured() is False
+            # 齐全
+            for k, v in full.items():
+                setattr(settings, k, v)
+            assert dependencies.is_oss_configured() is True
+            # 配置齐全时会建真实客户端 —— 不实际连接（oss2 构造惰性），但避免污染单例
+            dependencies._oss_client_instance = None
+        finally:
+            for k, v in saved.items():
+                setattr(settings, k, v)
+            dependencies._oss_client_instance = None
 
-        monkeypatch.setattr(settings, "oss_enable", True, raising=False)
-        monkeypatch.setattr(settings, "oss_access_key_id", "", raising=False)
-        assert dependencies.is_oss_configured() is False
+    def test_get_oss_client_returns_none_when_disabled(self, monkeypatch):
+        """未配置时不建客户端、返回 None（不抛错，其他路由注入不受影响）。"""
+        from app.api import dependencies
+        from app.config.settings import settings
 
-        monkeypatch.setattr(settings, "oss_access_key_id", "ak", raising=False)
-        monkeypatch.setattr(settings, "oss_access_key_secret", "sk", raising=False)
-        monkeypatch.setattr(settings, "oss_endpoint", "http://oss", raising=False)
-        monkeypatch.setattr(settings, "oss_bucket_name", "bkt", raising=False)
-        assert dependencies.is_oss_configured() is True
-        # 未配置时不建客户端、返回 None（不抛错，保证其他路由注入不受影响）
-        dependencies._oss_client_instance = None
-        assert dependencies.get_oss_client() is None
+        saved = {k: getattr(settings, k) for k in (
+            "oss_enable", "oss_access_key_id", "oss_access_key_secret",
+            "oss_endpoint", "oss_bucket_name")}
+        try:
+            for k in saved:
+                setattr(settings, k, "" if k != "oss_enable" else False)
+            dependencies._oss_client_instance = None
+            assert dependencies.get_oss_client() is None
+        finally:
+            for k, v in saved.items():
+                setattr(settings, k, v)
+            dependencies._oss_client_instance = None
 
     def test_upload_route_guard_returns_400(self):
         """路由守卫：未配置 OSS 时 upload/delete 返回 400 而非 500。"""
+        from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
         from app.api.agent_profile_route import router
-        from fastapi import FastAPI
+        from app.config.settings import settings
 
-        app = FastAPI()
-        app.include_router(router)
-        client = TestClient(app)
-        # 默认 settings（oss_enable=False）→ 两个 bundle 路由都应 400
-        import io as _io
+        saved = {k: getattr(settings, k) for k in (
+            "oss_enable", "oss_access_key_id", "oss_access_key_secret",
+            "oss_endpoint", "oss_bucket_name")}
+        for k in saved:
+            setattr(settings, k, "" if k != "oss_enable" else False)
+        try:
+            app = FastAPI()
+            # 守卫先于业务依赖抛 400；stub 掉 service 依赖避免触碰 storage_registry
+            app.dependency_overrides[get_agent_profile_service] = lambda: None
+            app.include_router(router)
+            client = TestClient(app)
+            # 默认 settings（oss_enable=False）→ 两个 bundle 路由都应 400
+            import io as _io
 
-        r = client.post(
-            "/api/v1/agent-config/skills/upload",
-            files={"file": ("a.zip", _io.BytesIO(b"PK\x03\x04xx"), "application/zip")},
-            data={"user_id": "u1", "name": "a"},
-        )
-        assert r.status_code == 400
-        assert "OSS" in r.json()["detail"]
-        r2 = client.delete("/api/v1/agent-config/skills/some-id/bundle")
-        assert r2.status_code == 400
-        # capabilities 接口返回 enabled=false
-        r3 = client.get("/api/v1/agent-config/skills/capabilities")
-        assert r3.status_code == 200
-        assert r3.json()["skill_bundle_enabled"] is False
+            r = client.post(
+                "/api/v1/agent-config/skills/upload",
+                files={"file": ("a.zip", _io.BytesIO(b"PK\x03\x04xx"), "application/zip")},
+                data={"user_id": "u1", "name": "a"},
+            )
+            assert r.status_code == 400
+            assert "OSS" in r.json()["detail"]
+            r2 = client.delete("/api/v1/agent-config/skills/some-id/bundle")
+            assert r2.status_code == 400
+            # capabilities 接口返回 enabled=false
+            r3 = client.get("/api/v1/agent-config/skills/capabilities")
+            assert r3.status_code == 200
+            assert r3.json()["skill_bundle_enabled"] is False
+        finally:
+            for k, v in saved.items():
+                setattr(settings, k, v)

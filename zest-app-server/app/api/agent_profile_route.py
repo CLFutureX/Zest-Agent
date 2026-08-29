@@ -92,6 +92,12 @@ async def update_skill(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+@router.get("/skills/capabilities", response_model=dict)
+async def get_skill_capabilities():
+    """前端能力探测：OSS 未配置时隐藏 bundle 上传入口。"""
+    return {"skill_bundle_enabled": is_oss_configured()}
+
+
 @router.post("/skills/upload", response_model=SkillProfile)
 async def upload_skill_bundle(
     file: UploadFile = File(..., description="skill bundle zip"),
