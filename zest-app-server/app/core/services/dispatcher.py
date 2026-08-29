@@ -236,6 +236,12 @@ class Dispatcher:
                 role="user", text=text, run=True
             )
 
+        # 记忆开关：读取用户持久化配置；conversation.metadata 中的开关可单会话覆盖（优先级最高）
+        memory_settings = await self.agent_config_service.resolve_memory_settings(conversation.user_id)
+        meta = conversation.metadata or {}
+        enable_base_memory = meta.get("enable_base_memory", memory_settings.enable_base_memory)
+        enable_experience_memory = meta.get("enable_experience_memory", memory_settings.enable_experience_memory)
+
         return ConversationCreatePayload(
             user_id=conversation.user_id,
             conversation_id=conversation.id,
@@ -243,6 +249,8 @@ class Dispatcher:
             workspace=ConversationWorkspacePayload(working_dir=workspace_dir),
             confirmation_policy=ConfirmationPolicyPayload(),
             initial_message=initial_message,
+            enable_base_memory=enable_base_memory,
+            enable_experience_memory=enable_experience_memory,
         )
 
     # task任务： 和下游zest-service中的_build_conversation_access_info冲突了。直接取下游返回的数据

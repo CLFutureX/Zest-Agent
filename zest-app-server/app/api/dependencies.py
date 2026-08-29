@@ -16,12 +16,14 @@ from redis.asyncio import from_url as redis_from_url
 from common.query.conversation_read_facade import ConversationReadFacade
 
 from app.config.settings import settings
+from app.core.storage.oss_client import OssClient
 from app.core.loadbalancer import LoadBalancer, create_loadbalancer
 from app.core.models import (
     PromptConfig,
     SkillProfile,
     SubAgentConfig,
     UserLlmConfig,
+    MemorySettings,
 )
 from app.core.registry.redis_registry import RedisAgentRegistryServer
 from app.core.storage.backend import LocalFileBackend, MysqlBackend, StorageBackend
@@ -89,12 +91,44 @@ def get_skill_profile_storage():
     return storage_registry.backend.resource_for(SkillProfile)
 
 
+_oss_client_instance: OssClient | None = None
+
+
+def is_oss_configured() -> bool:
+    """OSS bundle 上传能力是否可用（策略层判断：显式开关 + 凭证齐全）。"""
+    return bool(
+        settings.oss_enable
+        and settings.oss_access_key_id
+        and settings.oss_access_key_secret
+        and settings.oss_endpoint
+        and settings.oss_bucket_name
+    )
+
+
+def get_oss_client() -> OssClient | None:
+    """OSS 客户端懒单例；凭证来自 settings（env/.env）。
+    未配置/未启用时返回 None，由调用方（路由守卫/服务层）决定如何处理。"""
+    global _oss_client_instance
+    if _oss_client_instance is None and is_oss_configured():
+        _oss_client_instance = OssClient(
+            access_key_id=settings.oss_access_key_id,
+            access_key_secret=settings.oss_access_key_secret,
+            endpoint=settings.oss_endpoint,
+            bucket_name=settings.oss_bucket_name,
+        )
+    return _oss_client_instance
+
+
 def get_prompt_config_storage():
     return storage_registry.backend.resource_for(PromptConfig)
 
 
 def get_subagent_config_storage():
     return storage_registry.backend.resource_for(SubAgentConfig)
+
+
+def get_memory_settings_storage():
+    return storage_registry.backend.resource_for(MemorySettings)
 
 
 def get_load_balancer() -> LoadBalancer:
@@ -121,6 +155,7 @@ def get_agent_config_service() -> AgentConfigService:
         skill_storage=get_skill_profile_storage(),
         prompt_storage=get_prompt_config_storage(),
         subagent_config_storage=get_subagent_config_storage(),
+        memory_settings_storage=get_memory_settings_storage(),
     )
 
 
@@ -151,6 +186,8 @@ def get_agent_profile_service() -> AgentProfileService:
         skill_storage=get_skill_profile_storage(),
         prompt_storage=get_prompt_config_storage(),
         subagent_config_storage=get_subagent_config_storage(),
+        memory_settings_storage=get_memory_settings_storage(),
+        oss_client=get_oss_client(),
     )
 
 

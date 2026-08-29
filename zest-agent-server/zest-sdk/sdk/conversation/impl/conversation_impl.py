@@ -101,6 +101,8 @@ class LocalConversation(BaseConversation):
         hook_config: HookConfig | None = None,
         max_iteration_per_run: int = 500,
         stuck_detection: bool = True,
+        enable_base_memory: bool = True,
+        enable_experience_memory: bool = True,
         stuck_detection_thresholds: (
             StuckDetectionThresholds | Mapping[str, int] | None
         ) = None,
@@ -152,6 +154,10 @@ class LocalConversation(BaseConversation):
         # initialized instances during interpreter shutdown.
         self._cleanup_initiated = False
         self.user_id = user_id
+
+        # 记忆开关：按用户配置决定是否启用基础记忆 / 经验记忆
+        self._enable_base_memory = enable_base_memory
+        self._enable_experience_memory = enable_experience_memory
 
         # Store plugin specs for lazy loading (no IO in constructor)
         # Plugins will be loaded on first run() or send_message() call
@@ -291,20 +297,27 @@ class LocalConversation(BaseConversation):
         from sdk.agent.runner_context import RunnerContext
 
         
-        self._memory_manager = get_memory_manager()
-        
-        self._event_center.subscribe(
-            ExperienceMemoryConsumer(
-                conversation_id=self.id,
-                _memory_manager=self._memory_manager,
-            )
+        # 按用户开关构建 MemoryManager：仅在开启对应记忆时初始化/检索对应 store
+        self._memory_manager = get_memory_manager(
+            enable_base_memory=self._enable_base_memory,
+            enable_experience_memory=self._enable_experience_memory,
         )
-        self._event_center.subscribe(
-            BaseMemoryConsumer(
-                conversation_id=self.id,
-                _memory_manager=self._memory_manager,
+
+        # 仅在对应记忆开启时，注册事件订阅（经验写入 / 基础记忆写入）
+        if self._enable_experience_memory:
+            self._event_center.subscribe(
+                ExperienceMemoryConsumer(
+                    conversation_id=self.id,
+                    _memory_manager=self._memory_manager,
+                )
             )
-        )
+        if self._enable_base_memory:
+            self._event_center.subscribe(
+                BaseMemoryConsumer(
+                    conversation_id=self.id,
+                    _memory_manager=self._memory_manager,
+                )
+            )
         # ===== 基于 AgentState 创建 RunnerContext =====
         self._runner_context = RunnerContext.build(
             conversation_state=self._state,

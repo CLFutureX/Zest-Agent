@@ -110,6 +110,8 @@ class ConversationFactory:
             max_iteration_per_run=meta_data.max_iterations,
 
             stuck_detection=meta_data.stuck_detection,
+            enable_base_memory=meta_data.enable_base_memory,
+            enable_experience_memory=meta_data.enable_experience_memory,
 
             visualizer=visualizer,
 

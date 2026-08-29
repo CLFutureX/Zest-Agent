@@ -4,6 +4,9 @@ import {
   createLlmConfig,
   createPrompt,
   createSkill,
+  deleteSkillBundle,
+  getSkillCapabilities,
+  uploadSkillBundle,
   createSubAgentConfig,
   listLlmConfigs,
   listPrompts,
@@ -67,6 +70,15 @@ export function ConfigCenterPage() {
   })
 
   const [skillForm, setSkillForm] = useState(createEmptySkillForm)
+
+  useEffect(() => {
+    getSkillCapabilities()
+      .then((caps) => setSkillBundleEnabled(caps.skill_bundle_enabled))
+      .catch(() => setSkillBundleEnabled(false))
+  }, [])
+  const [skillBundleFile, setSkillBundleFile] = useState<File | null>(null)
+  const [skillBundleEnabled, setSkillBundleEnabled] = useState(false)
+  const [skillBundleUploading, setSkillBundleUploading] = useState(false)
   const [promptForm, setPromptForm] = useState(createEmptyPromptForm)
   const [subagentForm, setSubagentForm] = useState(createEmptySubagentForm)
 
@@ -137,6 +149,58 @@ export function ConfigCenterPage() {
       await loadAll()
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : '创建 LLM 配置失败。')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUploadSkillBundle = async () => {
+    if (!currentUserId) {
+      promptAuthForConfigAction('上传 Skill 包')
+      return
+    }
+    if (!skillBundleFile) {
+      setErrorMessage('请先选择 zip 文件。')
+      return
+    }
+
+    setSkillBundleUploading(true)
+    setErrorMessage('')
+    setSuccessMessage('')
+    try {
+      const name = skillBundleFile.name.replace(/\.zip$/i, '')
+      await uploadSkillBundle({
+        userId: currentUserId,
+        file: skillBundleFile,
+        name,
+        description: skillForm.description || undefined,
+        enabled: true,
+      })
+      setSuccessMessage('Skill 包上传成功。')
+      setSkillBundleFile(null)
+      await loadAll()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Skill 包上传失败。')
+    } finally {
+      setSkillBundleUploading(false)
+    }
+  }
+
+  const handleDeleteSkillBundle = async (item: SkillProfileSummary) => {
+    if (!currentUserId) {
+      promptAuthForConfigAction(`删除 Skill 包 ${item.name}`)
+      return
+    }
+
+    setLoading(true)
+    setErrorMessage('')
+    setSuccessMessage('')
+    try {
+      await deleteSkillBundle(item.id)
+      setSuccessMessage('Skill 包已删除。')
+      await loadAll()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Skill 包删除失败。')
     } finally {
       setLoading(false)
     }
@@ -547,6 +611,33 @@ export function ConfigCenterPage() {
                 </button>
               </section>
 
+              {skillBundleEnabled ? (
+              <section className="panel config-form-panel">
+                <div className="section-heading">
+                  <h2>上传 Skill 包（zip）</h2>
+                  <span className="section-note">AgentSkills 格式，需含 SKILL.md</span>
+                </div>
+                <div className="config-form-grid">
+                  <input
+                    type="file"
+                    accept=".zip"
+                    onChange={(e) => setSkillBundleFile(e.target.files?.[0] ?? null)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void handleUploadSkillBundle()}
+                    disabled={loading || skillBundleUploading || !skillBundleFile}
+                  >
+                    {skillBundleUploading ? '上传中…' : '上传 Skill 包'}
+                  </button>
+                </div>
+              </section>
+              ) : (
+                <section className="panel config-form-panel">
+                  <p className="section-note">Skill 包上传未启用：服务端未配置 OSS。可继续使用下方文本形式创建 Skill。</p>
+                </section>
+              )}
+
               <section className="panel config-list-panel">
                 <div className="section-heading"><h2>Skill 列表</h2><span className="section-note">{skills.length} items</span></div>
                 <div className="config-card-list">
@@ -573,8 +664,22 @@ export function ConfigCenterPage() {
                         >
                           <span className="config-toggle-thumb" />
                         </button>
+                        {item.bundle_type ? (
+                          <button
+                            type="button"
+                            className="ghost-button"
+                            aria-label={`删除 Skill 包 ${item.name}`}
+                            disabled={loading}
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              void handleDeleteSkillBundle(item)
+                            }}
+                          >
+                            删除包
+                          </button>
+                        ) : null}
                       </div>
-                      <span>{item.enabled ? '已启用' : '未启用'}</span>
+                      <span>{item.enabled ? '已启用' : '未启用'}{item.bundle_type ? ' · bundle' : ''}</span>
                       <p>{item.description || item.source || '无补充说明'}</p>
                     </article>
                   ))}

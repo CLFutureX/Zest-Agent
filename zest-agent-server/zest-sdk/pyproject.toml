@@ -20,7 +20,7 @@ dependencies = [
     "elasticsearch==8.14.0",
     "fastmcp>=3.0.0",
     "aiohttp==3.13.5",
-]
+    "oss2>=2.18.0",]
 
 [project.urls]
 Source = "https://github.com/CLFutureX/Zest-Agent"

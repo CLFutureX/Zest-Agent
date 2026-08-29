@@ -57,20 +57,24 @@ class MemoryManager(BaseModel):
     # 配置
     storage_settings: StorageSettings | None = Field(default=None)
 
+    # 记忆开关：按用户配置决定是否启用基础记忆 / 经验记忆
+    enable_base_memory: bool = Field(default=True)
+    enable_experience_memory: bool = Field(default=True)
+
     class Config:
         arbitrary_types_allowed = True
 
     @model_validator(mode="after")
     def _initialize_stores(self) -> "MemoryManager":
-        """根据开关自动初始化对应 store"""
+        """根据开关自动初始化对应 store：仅在开启时初始化。"""
         # 只有开启基础记忆才初始化 store
-        if self.base_store is None:
+        if self.enable_base_memory and self.base_store is None:
             self.base_store = create_base_memory_store( 
                 storage_settings=self.storage_settings,
             )
 
         # 只有开启经验记忆才初始化 store
-        if self.experience_store is None:
+        if self.enable_experience_memory and self.experience_store is None:
             self.experience_store = create_experience_memory_store( 
                 storage_settings=self.storage_settings,
             )
@@ -83,12 +87,16 @@ class MemoryManager(BaseModel):
         # base_backend: str = "local",
         # experience_backend: str = "es",
         storage_settings: StorageSettings | None = None,  
+        enable_base_memory: bool = True,
+        enable_experience_memory: bool = True,
     ) -> "MemoryManager":
         """工厂方法：创建 MemoryManager 实例（支持开关）"""
         return cls(
             # base_backend=base_backend,
             # experience_backend=experience_backend,
             storage_settings=storage_settings,  
+            enable_base_memory=enable_base_memory,
+            enable_experience_memory=enable_experience_memory,
         )
 
     # ------------------------------------------------------------------
@@ -108,29 +116,30 @@ class MemoryManager(BaseModel):
         # --------------------------
         # 基础记忆开关
         # --------------------------
-        
-        categorized_memory = self._load_categorized_base_memory(user_message.user_id)
-        parts = []
-        for cat in MemoryCategory:
-            val = categorized_memory.get(cat.value, "")
-            if val:
-                parts.append(f"[{cat.value}]\n{val}")
-        base_memory_str = "\n".join(parts) if parts else ""
+        if self.enable_base_memory and self.base_store is not None:
+            categorized_memory = self._load_categorized_base_memory(user_message.user_id)
+            parts = []
+            for cat in MemoryCategory:
+                val = categorized_memory.get(cat.value, "")
+                if val:
+                    parts.append(f"[{cat.value}]\n{val}")
+            base_memory_str = "\n".join(parts) if parts else ""
      
         # --------------------------
         # 经验记忆开关
         # --------------------------
-         
-        content = ""
+        if self.enable_experience_memory and self.experience_store is not None:
+            content = ""
         if user_message.content and len(user_message.content) > 0:
-            content = (
-                user_message.content[0].text
-                if isinstance(user_message.content[0], TextContent)
-                else ""
+            if user_message.content and len(user_message.content) > 0:
+                content = (
+                    user_message.content[0].text
+                    if isinstance(user_message.content[0], TextContent)
+                    else ""
+                )
+            experience_memory, doc_ids = self._search_experience_memory(
+                user_message.user_id, content
             )
-        experience_memory, doc_ids = self._search_experience_memory(
-            user_message.user_id, content
-        )
         
         return {
             "base_memory": categorized_memory,
@@ -169,6 +178,9 @@ class MemoryManager(BaseModel):
         else:
             entry = MemoryEntry(content=str(content))
 
+        if not self.enable_base_memory or self.base_store is None:
+            logger.info("基础记忆未启用，跳过写入")
+            return ""
         return self.base_store.write_category(user_id, category, entry, mode=mode)
 
     def update_base_memory_entry(
@@ -205,6 +217,9 @@ class MemoryManager(BaseModel):
         - 轨迹部分一致 + optimization -> review 队列（待人工审核）
         - 轨迹完全不同 -> new
         """
+        if not self.enable_experience_memory or self.experience_store is None:
+            logger.info("经验记忆未启用，跳过保存")
+            return ""
         if not all([
             experience.user_id,
             experience.question,
@@ -286,8 +301,8 @@ class MemoryManager(BaseModel):
     # ------------------------------------------------------------------
 
     def _load_categorized_base_memory(self, user_id: str) -> dict[str, str]:
-        # if not self.enable_base_memory:
-        #     return {}
+        if not self.enable_base_memory or self.base_store is None:
+            return {}
 
         result = {}
         for cat in MemoryCategory:
@@ -304,8 +319,8 @@ class MemoryManager(BaseModel):
     def _search_experience_memory(
         self, user_id: str, query: str, *, domain_type=None, feedback_type=None, threshold=None
     ) -> tuple[list[ExperienceMemory], list[str]]:
-        # if not self.enable_experience_memory or not query:
-        #     return [], []
+        if not self.enable_experience_memory or self.experience_store is None or not query:
+            return [], []
 
         threshold = threshold or self.DEFAULT_THRESHOLD
         results = self.experience_store.search_experiences(
@@ -397,7 +412,14 @@ def get_memory_manager(
     # base_backend: str = "local",
     # experience_backend: str = "es",
     storage_settings: StorageSettings | None = None, 
+    enable_base_memory: bool = True,
+    enable_experience_memory: bool = True,
 ) -> MemoryManager:
+    """获取（按开关）记忆管理器全局单例。
+
+    开关语义：取本会话传入开关与已有单例开关的「并集」——若任一会话启用了某记忆，
+    则单例保留该记忆能力，避免后启动的会话因更小开关集而关闭已初始化的 store。
+    """
     global __memory_manager
     with _memory_lock:
         if __memory_manager is None:
@@ -405,5 +427,21 @@ def get_memory_manager(
                 # base_backend=base_backend,
                 # experience_backend=experience_backend,
                 storage_settings=storage_settings, 
+                enable_base_memory=enable_base_memory,
+                enable_experience_memory=enable_experience_memory,
             )
+        else:
+            # 并集策略：保留更宽的开关
+            if enable_base_memory and not __memory_manager.enable_base_memory:
+                __memory_manager.enable_base_memory = True
+                if __memory_manager.base_store is None:
+                    __memory_manager.base_store = create_base_memory_store(
+                        storage_settings=__memory_manager.storage_settings,
+                    )
+            if enable_experience_memory and not __memory_manager.enable_experience_memory:
+                __memory_manager.enable_experience_memory = True
+                if __memory_manager.experience_store is None:
+                    __memory_manager.experience_store = create_experience_memory_store(
+                        storage_settings=__memory_manager.storage_settings,
+                    )
     return __memory_manager

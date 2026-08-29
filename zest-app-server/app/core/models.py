@@ -252,15 +252,25 @@ class SkillProfile(BaseModel):
 
     name: str = Field(..., description="技能名称")
 
-    content: str = Field(..., description="技能正文")
+    is_shared: bool = Field(default=True, description="是否共享")
+
+    content: str = Field(..., description="技能正文；bundle 类型时为空串，运行时按需拉取")
 
     description: Optional[str] = Field(None, description="技能说明")
 
-    source: Optional[str] = Field(None, description="技能来源")
+    source: Optional[str] = Field(None, description="技能来源；bundle 类型为 oss://<key>@<version>#<hash>")
 
     trigger: Optional[Dict[str, Any]] = Field(None, description="技能触发配置")
 
     enabled: bool = Field(default=True, description="是否启用该技能")
+
+    bundle_type: Optional[str] = Field(None, description="bundle 类型，如 zip；为空表示 inline 文本 skill")
+
+    oss_key: Optional[str] = Field(None, description="bundle 在 OSS 上的对象键")
+
+    content_hash: Optional[str] = Field(None, description="bundle 字节内容的 sha256")
+
+    version: Optional[str] = Field(None, description="bundle 版本号")
 
 
 
@@ -386,6 +396,34 @@ class CreateUserLlmConfigRequest(BaseModel):
     api_key: str = Field(..., description="API Key")
 
     base_url: Optional[str] = Field(None, description="可选基础地址")
+
+
+
+
+
+class MemorySettings(BaseModel):
+
+    """用户级记忆开关配置（基础记忆 / 经验记忆是否启用），每用户一条。"""
+
+    id: str = Field(..., description="配置ID")
+
+    user_id: str = Field(..., description="用户ID")
+
+    enable_base_memory: bool = Field(default=True, description="是否启用基础记忆")
+
+    enable_experience_memory: bool = Field(default=True, description="是否启用经验记忆")
+
+
+
+
+
+class UpdateMemorySettingsRequest(BaseModel):
+
+    user_id: str = Field(..., description="用户ID")
+
+    enable_base_memory: bool = Field(default=True, description="是否启用基础记忆")
+
+    enable_experience_memory: bool = Field(default=True, description="是否启用经验记忆")
 
 
 
@@ -692,3 +730,16 @@ class RegisterRequest(BaseModel):
 
 class RegisterResponse(BaseModel):
     user: 'AuthSessionUser'
+
+
+class CreateSkillBundleRequest(BaseModel):
+
+    """上传 skill bundle（zip）的请求体；file 在路由层用 UploadFile 接收。"""
+
+    user_id: str = Field(..., description="用户ID")
+
+    name: str = Field(..., description="技能名称")
+
+    description: Optional[str] = Field(None, description="技能说明；为空时从 SKILL.md frontmatter 解析")
+
+    enabled: bool = Field(default=True, description="是否启用该技能")

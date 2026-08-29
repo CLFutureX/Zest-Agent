@@ -7,8 +7,9 @@ from __future__ import annotations
 
 import os
 
-from app.core.models import AgentConfigPayload, LLMConfig, SkillDefinitionPayload
+from app.core.models import AgentConfigPayload, LLMConfig, MemorySettings, SkillDefinitionPayload
 from app.core.storage.base import (
+    MemorySettingsStorage,
     PromptConfigStorage,
     SkillProfileStorage,
     SubAgentConfigStorage,
@@ -25,11 +26,13 @@ class AgentConfigService:
         skill_storage: SkillProfileStorage,
         prompt_storage: PromptConfigStorage,
         subagent_config_storage: SubAgentConfigStorage,
+        memory_settings_storage: MemorySettingsStorage,
     ):
         self.llm_config_storage = llm_config_storage
         self.skill_storage = skill_storage
         self.prompt_storage = prompt_storage
         self.subagent_config_storage = subagent_config_storage
+        self.memory_settings_storage = memory_settings_storage
 
     async def build_agent_config(
         self,
@@ -52,6 +55,21 @@ class AgentConfigService:
             system_prompt_kwargs={"user_id": user_id},
             subagent_configs=subagent_configs,
         )
+
+    async def resolve_memory_settings(self, user_id: str) -> MemorySettings:
+        """获取（或初始化）用户记忆开关配置，供创建会话时注入 ConversationCreatePayload。"""
+        # AgentProfileService 提供幂等的 get_or_create；此处复用 storage 的 list_by_user
+        existing = await self.memory_settings_storage.list_by_user(user_id)
+        if existing:
+            return existing[0]
+        settings = MemorySettings(
+            id=f"mem_{os.urandom(6).hex()}",
+            user_id=user_id,
+            enable_base_memory=True,
+            enable_experience_memory=True,
+        )
+        await self.memory_settings_storage.create(settings)
+        return settings
 
     async def _resolve_llm(
         self,

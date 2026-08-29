@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { AlertBanner } from '../components/workspace/AlertBanner'
 import { MemoryPanel } from '../components/workspace/MemoryPanel'
+import { MemorySettingsSection } from '../components/workspace/MemorySettingsSection'
 import type { WorkspacePanelTab } from '../hooks/useWorkspacePanel'
 import { listBaseMemories, listExperienceMemories } from '../services/appServerApi'
 import { useAuthStore } from '../stores/useAuthStore'
@@ -92,6 +93,7 @@ function MemoryPageContent() {
       </header>
 
       <main className="workspace-page-body memory-page-body">
+        <MemorySettingsSection />
         <section className="panel panel-feature config-center-shell memory-page-shell">
           <div className="section-heading">
             <div>

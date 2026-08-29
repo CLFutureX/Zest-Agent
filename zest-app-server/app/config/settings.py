@@ -57,6 +57,19 @@ class Settings(BaseSettings):
     agent_service_api_prefix: str = "/api"
     agent_service_session_api_key: Optional[str] = ""
 
+    # ---- OSS（skill bundle 存储）----
+    oss_access_key_id: str = ""
+    oss_access_key_secret: str = ""
+    oss_endpoint: str = ""
+    oss_bucket_name: str = ""
+    oss_enable: bool = False 
+
+    # ---- skill bundle 上传策略 ----
+    skill_bundle_max_size_mb: int = 10
+    skill_bundle_max_uncompressed_mb: int = 50
+    skill_bundle_max_file_count: int = 500
+    skill_max_per_user: int = 50
+
     # 日志配置
     log_level: str = "DEBUG"
     log_file: str = ".data/logs/appserver.log"

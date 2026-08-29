@@ -70,6 +70,22 @@ export type SkillProfileSummary = {
 
 
 
+  bundle_type?: string | null
+
+
+
+  oss_key?: string | null
+
+
+
+  content_hash?: string | null
+
+
+
+  version?: string | null
+
+
+
 }
 
 

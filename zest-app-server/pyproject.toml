@@ -18,7 +18,7 @@ dependencies = [
     "uvicorn>=0.44.0",
     "asyncpg>=0.29.0",
     "aiomysql>=0.2.0",
-]
+    "oss2>=2.18.0",]
 
 [tool.setuptools.packages.find]
 include = ["app*"]

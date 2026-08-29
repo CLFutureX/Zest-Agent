@@ -1,5 +1,6 @@
 from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor
+import os
 import pathlib
 import re
 
@@ -217,11 +218,45 @@ class SkillBuildStage:
     def run(self, agent_spec: AgentSpec, context, runtime: AgentRuntime) -> AgentRuntime:
         if not agent_spec.agent_context_spec or not agent_spec.agent_context_spec.skills:
             return runtime
-        self._validate_skills(agent_spec.agent_context_spec.skills) 
-        skills: list[Skill] = agent_spec.agent_context_spec.skills
+        skills: list[Skill] = list(agent_spec.agent_context_spec.skills)
+        self._validate_skills(skills, None)
+        # OSS bundle 占位 skill 按需物化（下载/缓存/加载），展开后重跑去重
+        skills = self._resolve_oss_skills(skills)
+        self._validate_skills(skills, None)
         self._load_user_skills(agent_spec, skills)
         self._load_public_skills(agent_spec, skills)
-        return runtime.copy_with(skills=skills)  
+        return runtime.copy_with(skills=skills)
+
+    def _resolve_oss_skills(self, skills: list[Skill]) -> list[Skill]:
+        """将 source 为 oss:// 的占位 skill 物化为真实 Skill 列表。
+
+        占位 skill 由 conversation_service 从 SkillDefinitionPayload 直接构造
+        （content 为空串、source 携带 oss://<key>@<version>#<hash>）；
+        此处按需从 OSS 拉取 bundle 并加载，一个占位可能展开为多个 skill。
+        """
+        if not os.environ.get("OSS_ENABLE"):
+            return skills
+        if not any(s.source and s.source.startswith("oss://") for s in skills):
+            return skills
+        from sdk.context.skills.oss_fetcher import (
+            materialize_oss_skill,
+            parse_oss_source,
+        )
+
+        resolved: list[Skill] = []
+        for skill in skills:
+            if not (skill.source and skill.source.startswith("oss://")):
+                resolved.append(skill)
+                continue
+            oss_key, version, content_hash = parse_oss_source(skill.source)
+            materialized = materialize_oss_skill(oss_key, version, content_hash)
+            logger.info(
+                "物化 OSS skill bundle: %s -> %d skill(s)",
+                skill.source,
+                len(materialized),
+            )
+            resolved.extend(materialized)
+        return resolved
         
         
     def _validate_skills(self, v: list[Skill], _info):
@@ -237,7 +272,7 @@ class SkillBuildStage:
     
     def _load_user_skills(self,agent_spec: AgentSpec, exist_skills: list[Skill]):
         """Load user skills from home directory if enabled."""
-        if not self.agent_spec.agent_context_spec.load_user_skills:
+        if not agent_spec.agent_context_spec.load_user_skills:
             return
 
         try:
@@ -253,16 +288,15 @@ class SkillBuildStage:
                         f"Skipping user skill '{user_skill.name}' "
                         f"(already in explicit skills)"
                     )
+            exist_skills.extend(skills)
         except Exception as e:
             logger.warning(f"Failed to load user skills: {str(e)}")
-
-        exist_skills + skills
 
    
     def _load_public_skills(self,agent_spec: AgentSpec, exist_skills: list[Skill]):
         """Load public skills from Zest skills repository if enabled."""
-        if not self.agent_context_spec.load_public_skills:
-            return 
+        if not agent_spec.agent_context_spec.load_public_skills:
+            return
         try:
             skills:list[Skill] = []
             public_skills = load_public_skills()
@@ -276,9 +310,9 @@ class SkillBuildStage:
                         f"Skipping public skill '{public_skill.name}' "
                         f"(already in existing skills)"
                     )
+            exist_skills.extend(skills)
         except Exception as e:
             logger.warning(f"Failed to load public skills: {str(e)}")
-        exist_skills + skills
  
 class SubAgentRuntimeStage:
 

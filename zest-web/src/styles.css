@@ -7349,3 +7349,27 @@ pre {
 .df-sidebar-item-title {
   font-weight: 600;
 }
+
+/* ===== Memory settings (记忆设置) ===== */
+.memory-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.memory-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.memory-settings-item {
+  flex-direction: column;
+  gap: 8px;
+  cursor: default;
+}
+
+@media (max-width: 860px) {
+  .memory-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}

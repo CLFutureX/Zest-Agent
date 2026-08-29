@@ -133,6 +133,16 @@ class StartConversationRequest(BaseModel):
 
     )
 
+    enable_base_memory: bool = Field(
+        default=True,
+        description="Whether to enable base memory for the conversation.",
+    )
+
+    enable_experience_memory: bool = Field(
+        default=True,
+        description="Whether to enable experience memory for the conversation.",
+    )
+
     secrets: dict[str, SecretSource] = Field(
 
         default_factory=dict,

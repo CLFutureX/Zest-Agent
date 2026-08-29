@@ -99,9 +99,23 @@ class MysqlResourceStorage(ResourceStorage[T], Generic[T]):
                     f"CREATE TABLE IF NOT EXISTS {table} ({col_defs}) "
                     f"ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
                 )
+                await self._ensure_columns(cur, table)
                 for idx_name, column, *rest in self._extra_indexes:
                     desc = bool(rest and rest[0])
                     await _ensure_index(cur, table, idx_name, column, desc=desc)
+
+    async def _ensure_columns(self, cur, table: str) -> None:
+        """自愈迁移：CREATE TABLE IF NOT EXISTS 不会给存量表加新列。
+        对照声明的 columns，缺失的用 ALTER TABLE ADD COLUMN 补齐（幂等）。"""
+        await cur.execute(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = %s",
+            (table,),
+        )
+        existing = {row[0] for row in await cur.fetchall()}
+        for name, ddl in self._columns.items():
+            if name not in existing:
+                await cur.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
 
     async def create(self, item: T) -> bool:
         cols = self._column_names
@@ -209,6 +223,7 @@ from app.core.models import (  # noqa: E402
     SkillProfile,
     SubAgentConfig,
     UserLlmConfig,
+    MemorySettings,
 )
 
 register_resource_schema(
@@ -240,6 +255,10 @@ register_resource_schema(
         "source": "VARCHAR(256) NULL",
         "trigger": "JSON NULL",
         "enabled": "TINYINT(1) NOT NULL DEFAULT 1",
+        "bundle_type": "VARCHAR(16) NULL",
+        "oss_key": "VARCHAR(512) NULL",
+        "content_hash": "VARCHAR(64) NULL",
+        "version": "VARCHAR(64) NULL",
         "created_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
         "updated_at": "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
     },

@@ -20,6 +20,7 @@ from app.core.models import (
     SubAgentConfig,
     TaskInfo,
     UserLlmConfig,
+    MemorySettings,
 )
 
 T = TypeVar("T")
@@ -74,6 +75,7 @@ UserLlmConfigStorage = ResourceStorage[UserLlmConfig]
 SkillProfileStorage = ResourceStorage[SkillProfile]
 PromptConfigStorage = ResourceStorage[PromptConfig]
 SubAgentConfigStorage = ResourceStorage[SubAgentConfig]
+MemorySettingsStorage = ResourceStorage[MemorySettings]
 
 
 # ==============================

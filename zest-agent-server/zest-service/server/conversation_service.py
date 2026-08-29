@@ -372,6 +372,8 @@ class ConversationService:
             initial_message=initial_message,
             max_iterations=payload.max_iterations,
             stuck_detection=payload.stuck_detection,
+            enable_base_memory=payload.enable_base_memory,
+            enable_experience_memory=payload.enable_experience_memory,
         )
 
 
@@ -469,6 +471,8 @@ class ConversationService:
 
 
             hook_config=request.hook_config,
+            enable_base_memory=request.enable_base_memory,
+            enable_experience_memory=request.enable_experience_memory,
 
 
 

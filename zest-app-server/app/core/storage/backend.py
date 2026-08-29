@@ -33,6 +33,7 @@ from app.core.models import (
     SubAgentConfig,
     TaskInfo,
     UserLlmConfig,
+    MemorySettings,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ _RESOURCE_SPECS = {
     SkillProfile: "skill_definitions",
     PromptConfig: "prompt_configs",
     SubAgentConfig: "subagent_configs",
+    MemorySettings: "memory_settings",
 }
 
 

@@ -187,6 +187,70 @@ export async function createLlmConfig(input: {
   return parseResponse<UserLlmConfigSummary>(response)
 }
 
+export type MemorySettingsSummary = {
+  id: string
+  user_id: string
+  enable_base_memory: boolean
+  enable_experience_memory: boolean
+}
+
+export async function getMemorySettings(userId: string): Promise<MemorySettingsSummary> {
+  const query = new URLSearchParams({ user_id: userId })
+  const response = await fetch(`${env.appApiBase}/agent-config/memory-settings?${query.toString()}`)
+  return parseResponse<MemorySettingsSummary>(response)
+}
+
+export async function updateMemorySettings(input: {
+  userId: string
+  enableBaseMemory: boolean
+  enableExperienceMemory: boolean
+}): Promise<MemorySettingsSummary> {
+  const response = await fetch(`${env.appApiBase}/agent-config/memory-settings`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: input.userId,
+      enable_base_memory: input.enableBaseMemory,
+      enable_experience_memory: input.enableExperienceMemory,
+    }),
+  })
+  return parseResponse<MemorySettingsSummary>(response)
+}
+
+export async function getSkillCapabilities(): Promise<{ skill_bundle_enabled: boolean }> {
+  const response = await fetch(`${env.appApiBase}/agent-config/skills/capabilities`)
+  return parseResponse<{ skill_bundle_enabled: boolean }>(response)
+}
+
+export async function uploadSkillBundle(input: {
+  userId: string
+  file: File
+  name: string
+  description?: string
+  enabled?: boolean
+}): Promise<SkillProfileSummary> {
+  const form = new FormData()
+  form.append('file', input.file)
+  form.append('user_id', input.userId)
+  form.append('name', input.name)
+  if (input.description) {
+    form.append('description', input.description)
+  }
+  form.append('enabled', String(input.enabled ?? true))
+  const response = await fetch(`${env.appApiBase}/agent-config/skills/upload`, {
+    method: 'POST',
+    body: form,
+  })
+  return parseResponse<SkillProfileSummary>(response)
+}
+
+export async function deleteSkillBundle(skillId: string): Promise<void> {
+  const response = await fetch(`${env.appApiBase}/agent-config/skills/${skillId}/bundle`, {
+    method: 'DELETE',
+  })
+  await parseResponse<unknown>(response)
+}
+
 export async function listSkills(userId: string, enabled?: boolean): Promise<SkillProfileSummary[]> {
   const query = new URLSearchParams({ user_id: userId })
   if (enabled !== undefined) {

@@ -39,6 +39,10 @@ class ConversationStateMeta(BaseModel):
     max_iterations: int = 500
 
     stuck_detection: bool = Field(default=True)
+
+    enable_base_memory: bool = Field(default=True)
+    enable_experience_memory: bool = Field(default=True)
+
     
     
 class ConversationStateSnapshot(BaseModel):
