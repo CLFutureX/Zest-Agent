@@ -62,6 +62,7 @@ class Scheduler:
             if not agent_server:
                 task.status = TaskStatus.FAILED
                 task.error_message = "no available agent server"
+                
                 task.updated_at = datetime.utcnow()
                 break
 
@@ -79,6 +80,7 @@ class Scheduler:
             if not access_info or access_info.error_message is not None:
                 task.status = TaskStatus.FAILED
                 task.error_message = access_info.error_message if access_info else "dispatch failed"
+              
                 excluded_servers.append(agent_server.server_id)
                 priority_id = None
                 continue

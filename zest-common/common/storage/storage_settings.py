@@ -305,7 +305,7 @@ def load_storage_settings_from_env() -> StorageSettings:
 
             base=BaseMemorySettings(
 
-                backend=(_get_str("STORAGE_MEMORY_BASE_BACKEND", _get_str("MEMORY_STORE_BACKEND", "es")) or "es").lower(),
+                backend=(_get_str("STORAGE_MEMORY_BASE_BACKEND", _get_str("MEMORY_STORE_BACKEND", "local")) or "local").lower(),
 
                 local_dir=_get_str("STORAGE_MEMORY_BASE_LOCAL_DIR", _build_memory_local_dir(storage_root_dir)) or _build_memory_local_dir(storage_root_dir),
 

@@ -26,7 +26,7 @@ export async function listConversations(input: {
   offset?: number
 }): Promise<ConversationResponse[]> {
   const response = await fetch(
-    `${env.appApiBase}/conversation/users/${input.userId}/conversations?limit=${input.limit ?? 20}&offset=${input.offset ?? 0}`,
+    `${env.appApiBase}/conversations/users/${input.userId}?limit=${input.limit ?? 20}&offset=${input.offset ?? 0}`,
   )
   const data = await parseResponse<{ conversation?: ConversationResponse[] }>(response)
   return data.conversation ?? []
@@ -39,7 +39,7 @@ export async function openConversation(input: {
   workspace?: string
   model?: string
 }): Promise<ConversationResponse> {
-  const response = await fetch(`${env.appApiBase}/conversation/conversations`, {
+  const response = await fetch(`${env.appApiBase}/conversations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -66,7 +66,7 @@ export async function openConversation(input: {
 }
 
 export async function getConversation(conversationId: string): Promise<ConversationResponse> {
-  const response = await fetch(`${env.appApiBase}/conversation/${conversationId}`)
+  const response = await fetch(`${env.appApiBase}/conversations/${conversationId}`)
   return parseResponse<ConversationResponse>(response)
 }
 
@@ -83,7 +83,7 @@ export async function getConversationEvents(
   if (cursor) {
     query.set('cursor', cursor)
   }
-  const response = await fetch(`${env.appApiBase}/conversation/${conversationId}/events?${query.toString()}`)
+  const response = await fetch(`${env.appApiBase}/conversations/${conversationId}/events?${query.toString()}`)
   return parseResponse<ConversationEventPage>(response)
 }
 
@@ -91,7 +91,7 @@ export async function getConversationStateView(
   conversationId: string,
 ): Promise<ConversationStateView | null> {
   try {
-    const response = await fetch(`${env.appApiBase}/conversation/${conversationId}/state`)
+    const response = await fetch(`${env.appApiBase}/conversations/${conversationId}/state`)
     if (response.status === 404) {
       return null
     }
@@ -106,7 +106,7 @@ export async function respondToConfirmation(
   input: ConfirmationResponseInput,
 ): Promise<{ success: boolean }> {
   const response = await fetch(
-    `${env.appApiBase}/conversation/${conversationId}/respond_to_confirmation`,
+    `${env.appApiBase}/conversations/${conversationId}/respond_to_confirmation`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -126,7 +126,7 @@ export async function getConversationBaseMemories(
   userId: string,
 ): Promise<ConversationMemoryRecord[]> {
   const query = new URLSearchParams({ user_id: userId })
-  const response = await fetch(`${env.appApiBase}/conversation/${conversationId}/memories/base?${query.toString()}`)
+  const response = await fetch(`${env.appApiBase}/conversations/${conversationId}/memories/base?${query.toString()}`)
   return parseResponse<ConversationMemoryRecord[]>(response)
 }
 
@@ -135,19 +135,19 @@ export async function getConversationExperienceMemories(
   userId: string,
 ): Promise<ConversationMemoryRecord[]> {
   const query = new URLSearchParams({ user_id: userId })
-  const response = await fetch(`${env.appApiBase}/conversation/${conversationId}/memories/experience?${query.toString()}`)
+  const response = await fetch(`${env.appApiBase}/conversations/${conversationId}/memories/experience?${query.toString()}`)
   return parseResponse<ConversationMemoryRecord[]>(response)
 }
 
 export async function listBaseMemories(userId: string): Promise<ConversationMemoryRecord[]> {
   const query = new URLSearchParams({ user_id: userId })
-  const response = await fetch(`${env.appApiBase}/conversation/_/memories/base?${query.toString()}`)
+  const response = await fetch(`${env.appApiBase}/conversations/memories/base?${query.toString()}`)
   return parseResponse<ConversationMemoryRecord[]>(response)
 }
 
 export async function listExperienceMemories(userId: string): Promise<ConversationMemoryRecord[]> {
   const query = new URLSearchParams({ user_id: userId })
-  const response = await fetch(`${env.appApiBase}/conversation/_/memories/experience?${query.toString()}`)
+  const response = await fetch(`${env.appApiBase}/conversations/memories/experience?${query.toString()}`)
   return parseResponse<ConversationMemoryRecord[]>(response)
 }
 

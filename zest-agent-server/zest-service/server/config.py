@@ -13,7 +13,7 @@ from common.security.security_settings import get_cipher_from_env
 
 
 # Environment variable constants
-ENVIRONMENT_VARIABLE_PREFIX = "ZEST"
+# ENVIRONMENT_VARIABLE_PREFIX = "ZEST"
 _logger = logging.getLogger(__name__)
 
 class WebhookSpec(BaseModel):
@@ -144,9 +144,9 @@ class Config(BaseSettings):
         default=False,
         description="Whether to enable AgentServer registry heartbeat reporting.",
     )
-    registry_backend: Literal["redis", "local"] = Field(
+    registry_mode: Literal["redis", "local"] = Field(
         default="redis",
-        description="Registry backend: redis (Hash+TTL) or local (shared file directory).",
+        description="Registry mode: redis (Hash+TTL) or local (shared file directory).",
     )
     registry_dir: str = Field(
         default=".runtime/registry/servers",
@@ -210,6 +210,6 @@ def get_default_config() -> Config:
     global _default_config
     if _default_config is None:
         # Get the config from the environment variables
-        _default_config = from_env(Config, ENVIRONMENT_VARIABLE_PREFIX)
+        _default_config = from_env(Config)
         assert _default_config is not None
     return _default_config

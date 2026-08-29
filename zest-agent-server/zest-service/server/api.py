@@ -65,7 +65,7 @@ async def api_lifespan(api: FastAPI) -> AsyncIterator[None]:
             port=config.agent_server_port,
             tags=config.registry_tags,
         )
-        if config.registry_backend == "local":
+        if config.registry_mode == "local":
             from server.agent_registry import LocalAgentRegistryClient
             registry_client = LocalAgentRegistryClient(
                 registry_dir=config.registry_dir,
@@ -84,9 +84,11 @@ async def api_lifespan(api: FastAPI) -> AsyncIterator[None]:
             )
             logger.info("Agent registry backend: redis (url=%s)", config.registry_redis_url)
         registry_task = asyncio.create_task(registry_client.register_loop())
+        
         api.state.registry_client = registry_client
         api.state.registry_task = registry_task
         logger.info("Agent registry client started: %s", registry_client.server_id)
+       
 
     # Start all services concurrently
     await asyncio.gather(start_tool_preload_service(), start_registry_client())

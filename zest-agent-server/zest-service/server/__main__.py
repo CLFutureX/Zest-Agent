@@ -71,8 +71,8 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    os.environ.setdefault("ZEST_AGENT_SERVER_HOST", args.host)
-    os.environ.setdefault("ZEST_AGENT_SERVER_PORT", str(args.port))
+    os.environ.setdefault("AGENT_SERVER_HOST", args.host)
+    os.environ.setdefault("AGENT_SERVER_PORT", str(args.port))
 
     print(f"🙌 Starting Zest Agent Server on {args.host}:{args.port}")
     print(f"📖 API docs will be available at http://{args.host}:{args.port}/docs")

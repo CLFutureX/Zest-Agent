@@ -36,7 +36,8 @@ class LocalAgentRegistryServer(AgentRegistryServer):
         watch_interval: int = 5,
     ) -> None:
         super().__init__(heartbeat_timeout)
-        self.registry_dir = Path(registry_dir)
+        pre_path = Path.home() / ".zest"
+        self.registry_dir = pre_path/registry_dir  
         self.registry_dir.mkdir(parents=True, exist_ok=True) 
         self.watch_interval = watch_interval
         self._servers: Dict[str, AgentServerInfo] = {}
@@ -60,12 +61,13 @@ class LocalAgentRegistryServer(AgentRegistryServer):
         # 在 executor 里跑同步 IO，避免阻塞 event loop。
         def _scan() -> Dict[str, AgentServerInfo]:
             found: Dict[str, AgentServerInfo] = {}
-            for path in self.registry_dir.glob("*.json"):
+            for path in self.registry_dir.glob("agent-*.json"):
                 try:
                     raw = path.read_text(encoding="utf-8")
                     data = json.loads(raw)
                     server = AgentServerInfo(**data)
                     found[server.server_id] = server
+                    logger.debug("scan registry file:%d data:%s",path,data)
                 except Exception:
                     logger.warning("Failed to parse registry file: %s", path, exc_info=True)
             return found

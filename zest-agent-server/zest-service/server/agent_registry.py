@@ -228,8 +228,9 @@ class LocalAgentRegistryClient:
         registry_dir: "str | os.PathLike[str]",
         server_info_provider: "Callable[[], Awaitable[Any]]",
         heartbeat_interval: int,
-    ) -> None:
-        self.registry_dir = Path(registry_dir)
+    ) -> None: 
+        pre_path = Path.home() / ".zest"
+        self.registry_dir = pre_path/registry_dir 
         self.registry_dir.mkdir(parents=True, exist_ok=True)
         self.server_info_provider = server_info_provider
         self.heartbeat_interval = heartbeat_interval
@@ -247,6 +248,7 @@ class LocalAgentRegistryClient:
         tmp_fd, tmp_path = tempfile.mkstemp(
             prefix=".tmp-", suffix=".json", dir=str(path.parent)
         )
+ 
         try:
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as fp:
                 fp.write(payload)
